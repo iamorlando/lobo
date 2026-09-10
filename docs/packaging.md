@@ -1,10 +1,12 @@
 # Building and testing the Python distribution
 
-The release artifacts are a `lobo` source distribution (`.tar.gz`) and native
+The release artifacts are a `pylobo` source distribution (`.tar.gz`) and native
 CPython stable-ABI wheels (`.whl`). A `cp311-abi3` wheel supports compatible
 CPython versions from 3.11 onward on its target OS and architecture; it is not
-tied to the Python minor version that built it. This workflow builds locally and in GitHub
-Actions; it contains no PyPI upload or release-publishing step.
+tied to the Python minor version that built it. The distribution is installed
+with `pip install pylobo`; the Python import and CLI are both named `lobo`.
+This workflow builds locally and in GitHub Actions, and publishes version-tag
+releases to PyPI after all platform builds and tests pass.
 
 ## What is included
 
@@ -89,7 +91,7 @@ To try it manually in any compatible Python environment, install the wheel
 printed by the build script, then open its terminal:
 
 ```sh
-python -m pip install /path/to/lobo-0.1.0-cp311-abi3-PLATFORM.whl
+python -m pip install /path/to/pylobo-0.1.0-cp311-abi3-PLATFORM.whl
 lobo serve --port 0 --book AAPL --open
 ```
 
@@ -122,6 +124,23 @@ Each row builds one `cp311-abi3` wheel and tests that same wheel on Python 3.11,
 3.12, 3.13, and 3.14. Cibuildwheel reuses the compatible wheel between interpreters.
 Free-threaded and prerelease interpreters are outside this selection.
 
+All six platforms run on every matching push and pull request, as well as on
+manual runs and release tags. Cargo downloads and compiled outputs are cached
+separately for each runner and architecture. Cache keys include the pinned Rust
+and cibuildwheel versions, Cargo manifests/lockfile, and Python build settings;
+compatible earlier caches can seed builds after dependency changes. Cargo still
+checks which crates need rebuilding. Each commit/run attempt can refresh the
+cache, including after a wheel test failure, so a failed test does not discard
+completed dependency compilation.
+
+The build output directory lives under the runner's temporary directory, outside
+cibuildwheel's extracted source archive. On Linux, the manylinux container uses
+that directory through `/host` and mounts a persistent Cargo home. This lets the
+cache action restore and save the actual container build outputs. The first run
+on each platform is still a full compilation; savings require a cache from a
+previous run. Dependency or toolchain changes and cache eviction can require
+another full build.
+
 Runner labels follow [GitHub's hosted runner list](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
 The architecture-specific build and installed-wheel tests use
 [cibuildwheel](https://cibuildwheel.pypa.io/en/stable/options/).
@@ -136,7 +155,7 @@ only after all six jobs succeed; a local macOS result does not establish it.
 ARM runner availability and billing depend on the repository's GitHub plan.
 
 The workflow runs on pull requests, pushes to `main`/`master`/`develop` and
-`release/**`/`hotfix/**`, and manual dispatch. Download `python-sdist` and
+`release/**`/`hotfix/**`, `v*` tags, and manual dispatch. Download `python-sdist` and
 `wheels-*` from the run's artifacts to install elsewhere. After committing and
 pushing the changes, it can also be started with:
 
@@ -145,5 +164,33 @@ gh workflow run python-package.yml --ref YOUR_BRANCH
 gh run list --workflow python-package.yml
 ```
 
-Publishing remains a later step: select a release version/name on PyPI, verify
-every target, and configure publishing credentials or trusted publishing then.
+Artifacts from branch and manual runs are retained for 7 days; version-tag
+artifacts are retained for 30 days. Published distributions remain on PyPI.
+
+## Publish to PyPI
+
+The pending Trusted Publisher for `pylobo` uses repository `iamorlando/lobo`,
+workflow `python-package.yml`, and GitHub environment `pypi`. The publish job
+matches these values and uses `id-token: write`; no PyPI API token is needed.
+The first successful upload creates the PyPI project and activates the pending
+publisher. See the [PyPI Trusted Publishing guide](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/).
+
+Commit and push the release changes, then push a tag matching `project.version`
+in `pyproject.toml`. For version `0.1.0`:
+
+```sh
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The workflow rejects a mismatched tag before building. Once the source archive
+and all six wheel jobs succeed, the publish job downloads their audited
+artifacts and uploads them to [PyPI](https://pypi.org/project/pylobo/) from a
+separate Linux job. The GitHub `pypi` environment must allow the release tag;
+any environment approval rules apply before publishing. Branch pushes, pull
+requests, and manual workflow dispatches build and test without publishing.
+
+Users can then install the release with `python -m pip install pylobo` and
+continue to use `import lobo` and the `lobo` command. For each later release,
+update the package version and matching version assertions, then push a new
+matching tag.

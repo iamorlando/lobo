@@ -1,5 +1,5 @@
 [project]
-name = "lobo"
+name = "pylobo"
 version = "0.1.0"
 description = "Native limit order books, market-data adapters, Polars outputs, and a hosted WebGPU terminal"
 readme = "README.md"

@@ -27,7 +27,7 @@ def read(url: str) -> bytes:
 
 
 def test_wheel_metadata_and_assets() -> None:
-    package = distribution("lobo")
+    package = distribution("pylobo")
     assert package.version == "0.1.0"
     assert any(
         e.name == "lobo" and e.value == "lobo.cli:main" for e in package.entry_points

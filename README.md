@@ -6,8 +6,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-A3E635?style=flat-square)](LICENSE-MIT.md)
 
 
-```py
-pip install lobopy
+```sh
+pip install pylobo
 ```
 
 - [LOBO](#lobo)
@@ -34,7 +34,7 @@ _Explore the [live demo](https://lobo-demo.vercel.app)._
 For Python, [build a wheel](docs/packaging.md#build-locally), then install it from the repository root:
 
 ```sh
-pip install dist/lobo-*.whl
+pip install dist/pylobo-*.whl
 ```
 
 To create and serve your first book, follow the [server guide](rust/crates/lobo_server/README.md)

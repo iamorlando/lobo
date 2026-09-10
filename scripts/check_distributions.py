@@ -73,7 +73,7 @@ def check(path: Path) -> None:
     """Reject missing assets, native extensions, and unintended package contents."""
     files, prefix, metadata = read_distribution(path)
     parsed = BytesParser().parsebytes(metadata)
-    if parsed["Name"] != "lobo" or not parsed.get_payload().strip():
+    if parsed["Name"] != "pylobo" or not parsed.get_payload().strip():
         raise ValueError("Missing package name or README metadata")
     dependencies = parsed.get_all("Requires-Dist", [])
     if not any(d.startswith("polars==1.43.2") for d in dependencies):

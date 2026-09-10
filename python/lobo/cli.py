@@ -28,7 +28,7 @@ def open_web(url: str) -> bool:
 def main(argv: list[str] | None = None) -> int:
     """Run the console command installed with the Python wheel."""
     parser = argparse.ArgumentParser(prog="lobo")
-    parser.add_argument("--version", action="version", version=version("lobo"))
+    parser.add_argument("--version", action="version", version=version("pylobo"))
     commands = parser.add_subparsers(dest="command", required=True)
     serve = commands.add_parser(
         "serve", help="start the order API and bundled terminal"

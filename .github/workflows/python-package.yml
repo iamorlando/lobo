@@ -16,13 +16,14 @@ on:
       - '.github/workflows/python-package.yml'
   push:
     branches: [main, master, develop, 'release/**', 'hotfix/**']
+    tags: ['v*']
 
 permissions:
   contents: read
 
 concurrency:
   group: python-package-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   sdist:
@@ -36,6 +37,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+      - name: Verify release tag matches package version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: python
+        run: |
+          import os
+          import tomllib
+          from pathlib import Path
+          project = tomllib.loads(Path('pyproject.toml').read_text())['project']
+          expected = f"v{project['version']}"
+          actual = os.environ['GITHUB_REF_NAME']
+          if actual != expected:
+              raise SystemExit(f'Release tag {actual!r} must match {expected!r}')
       - name: Install Rust
         run: |
           rustup toolchain install 1.96.1 --profile minimal
@@ -50,6 +63,7 @@ jobs:
           name: python-sdist
           path: dist/*.tar.gz
           if-no-files-found: error
+          retention-days: ${{ startsWith(github.ref, 'refs/tags/') && 30 || 7 }}
 
   wheels:
     name: ${{ matrix.build }}
@@ -97,11 +111,55 @@ jobs:
         run: |
           rustup toolchain install 1.96.1 --profile minimal
           rustup default 1.96.1
+      - name: Configure wheel build cache
+        id: cache
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          cache = Path(os.environ['RUNNER_TEMP']) / 'lobo-wheel-cache'
+          target = cache / 'target'
+          target.mkdir(parents=True, exist_ok=True)
+          if os.environ['RUNNER_OS'] == 'Linux':
+              cargo = cache / 'cargo'
+              cargo.mkdir(parents=True, exist_ok=True)
+          else:
+              cargo = Path(os.environ.get('CARGO_HOME', Path.home() / '.cargo'))
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'target={target.as_posix()}\n')
+              output.write(f'cargo={cargo.as_posix()}\n')
+      - name: Restore Cargo downloads and compiled dependencies
+        id: cargo_cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ steps.cache.outputs.target }}
+            ${{ steps.cache.outputs.cargo }}/registry
+            ${{ steps.cache.outputs.cargo }}/git
+          key: wheels-v1-${{ matrix.runner }}-${{ matrix.build }}-rust-1.96.1-cibw-4.2.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust/**/Cargo.toml', 'pyproject.toml') }}-${{ github.sha }}-${{ github.run_attempt }}
+          restore-keys: |
+            wheels-v1-${{ matrix.runner }}-${{ matrix.build }}-rust-1.96.1-cibw-4.2.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust/**/Cargo.toml', 'pyproject.toml') }}-
+            wheels-v1-${{ matrix.runner }}-${{ matrix.build }}-rust-1.96.1-cibw-4.2.1-
       - name: Build and test installed wheels for the Python versions in pyproject.toml
         uses: pypa/cibuildwheel@v4.2.1
         with:
           package-dir: ${{ steps.sdist.outputs.path }}
           output-dir: wheelhouse
+        env:
+          CARGO_TARGET_DIR: ${{ runner.os == 'Linux' && '/host' || '' }}${{ steps.cache.outputs.target }}
+          CIBW_ENVIRONMENT_PASS_LINUX: CARGO_TARGET_DIR
+          # Linux builds run inside manylinux; cache its Cargo home on the host.
+          CIBW_CONTAINER_ENGINE: >-
+            docker; create_args: "--volume=${{ steps.cache.outputs.cargo }}:/root/.cargo"
+      - name: Save compiled dependencies even if wheel tests fail
+        if: ${{ !cancelled() && steps.cargo_cache.outputs.cache-primary-key && steps.cargo_cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ steps.cache.outputs.target }}
+            ${{ steps.cache.outputs.cargo }}/registry
+            ${{ steps.cache.outputs.cargo }}/git
+          key: ${{ steps.cargo_cache.outputs.cache-primary-key }}
       - name: Audit wheel contents and PyPI metadata
         shell: bash
         run: |
@@ -113,3 +171,29 @@ jobs:
           name: wheels-${{ matrix.build }}
           path: wheelhouse/*.whl
           if-no-files-found: error
+          retention-days: ${{ startsWith(github.ref, 'refs/tags/') && 30 || 7 }}
+
+  publish:
+    name: Publish pylobo to PyPI
+    needs: [sdist, wheels]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && github.repository == 'iamorlando/lobo'
+    runs-on: ubuntu-24.04
+    environment:
+      name: pypi
+      url: https://pypi.org/p/pylobo
+    permissions:
+      id-token: write
+    steps:
+      - name: Download source distribution
+        uses: actions/download-artifact@v4
+        with:
+          name: python-sdist
+          path: dist
+      - name: Download tested wheels
+        uses: actions/download-artifact@v4
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist
+      - name: Publish distributions
+        uses: pypa/gh-action-pypi-publish@release/v1

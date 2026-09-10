@@ -77,7 +77,7 @@ def test_each_supported_interpreter_installs_the_same_wheel(
         calls.append((command, kwargs))
 
     monkeypatch.setattr(build_package.subprocess, "run", run)
-    wheel = project / "lobo-0.1.0-cp311-abi3-platform.whl"
+    wheel = project / "pylobo-0.1.0-cp311-abi3-platform.whl"
     build_package.test_wheel(project, Path("builder"), wheel, {"PATH": "/original"})
     creations = [args for args, _ in calls if "venv" in args]
     assert [args[args.index("--python") + 1] for args in creations] == [
@@ -103,9 +103,9 @@ def test_each_supported_interpreter_installs_the_same_wheel(
 def test_distribution_audit_rejects_wheels_that_do_not_support_python_311(
     tmp_path: Path, tag: str
 ) -> None:
-    wheel = tmp_path / "lobo-0.1.0-test.whl"
+    wheel = tmp_path / "pylobo-0.1.0-test.whl"
     with zipfile.ZipFile(wheel, "w") as archive:
-        archive.writestr("lobo-0.1.0.dist-info/METADATA", "Name: lobo\n")
-        archive.writestr("lobo-0.1.0.dist-info/WHEEL", f"Tag: {tag}\n" if tag else "")
+        archive.writestr("pylobo-0.1.0.dist-info/METADATA", "Name: pylobo\n")
+        archive.writestr("pylobo-0.1.0.dist-info/WHEEL", f"Tag: {tag}\n" if tag else "")
     with pytest.raises(ValueError, match="Python 3.11"):
         read_distribution(wheel)
