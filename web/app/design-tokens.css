@@ -1,0 +1,154 @@
+/* Nordic Violet / Institutional Light. See ../DESIGN.md.
+   All fonts are hosted locally with their OFL licenses in public/fonts. */
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/JetBrainsMono-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/JetBrainsMono-Medium.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/JetBrainsMono-SemiBold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/JetBrainsMono-Bold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/Inter-Latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Hanken Grotesk";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/HankenGrotesk-Latin.woff2") format("woff2");
+}
+:root {
+  color-scheme: dark;
+  --font-ui: "Inter", system-ui, sans-serif;
+  --font-terminal:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+  --bg: #090a10;
+  --canvas: #090a10;
+  --canvas-top: #281622;
+  --canvas-bottom: #261f15;
+  --loader-accent: #c7d2fe;
+  --selection: #1f2233;
+  --panel: #0f111a;
+  --panel-raised: #161824;
+  --panel-active: #1f2233;
+  --line: #2e334a;
+  --line-strong: #424866;
+  --text: #f1f3f9;
+  --muted: #94a3b8;
+  --primary: #818cf8;
+  --primary-solid: #6366f1;
+  --primary-active: #4f46e5;
+  --primary-dim: #6366f11a;
+  --on-primary: #ffffff;
+  --green: #35d779;
+  --green-action: #22c55e;
+  --on-green: #052e16;
+  --green-dim: #061c12;
+  --red: #fa5571;
+  --red-dim: #270914;
+  --simulation: #ffb5aa;
+  --simulation-ink: #4c0519;
+  --queue-ink: #f1f3f9;
+  --queue-bid-low: #14532d;
+  --queue-bid-high: #166534;
+  --queue-ask-low: #881337;
+  --queue-ask-high: #9f1239;
+  --chart-panel: #0f111a;
+  --chart-grid: #202435;
+  --chart-bid: #18b954;
+  --chart-ask: #df294b;
+  --chart-bid-low: #03190c;
+  --chart-ask-low: #2b0511;
+  --chart-bid-high: #35d779;
+  --chart-ask-high: #fa5571;
+  --overlay-shadow: 0 8px 24px #00000040;
+  --space-2xs: 2px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --gutter: var(--space-sm);
+  --panel-padding: 10px;
+  --radius: 4px;
+  --type-headline-lg: 700 28px / 32px var(--font-ui);
+  --type-headline-md: 600 20px / 24px var(--font-ui);
+  --type-headline-sm: 600 16px / 20px var(--font-ui);
+  --type-body-lg: 500 14px / 18px var(--font-ui);
+  --type-body-md: 400 12px / 16px var(--font-ui);
+  --type-body-sm: 400 11px / 14px var(--font-ui);
+  --type-label-lg: 700 11px / 12px var(--font-terminal);
+  --type-label-md: 600 10px / 12px var(--font-terminal);
+  --type-label-sm: 500 9px / 10px var(--font-terminal);
+  --tracking-label: 0.06em;
+  --focus-ring: 0 0 0 3px var(--primary-dim);
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --font-ui: "Hanken Grotesk", system-ui, sans-serif;
+  --bg: #f8fafc;
+  --canvas: #ffffff;
+  --canvas-top: #f3e8ee;
+  --canvas-bottom: #f4ecdf;
+  --loader-accent: #2563eb;
+  --selection: #e2e8f0;
+  --panel: #ffffff;
+  --panel-raised: #f1f5f9;
+  --panel-active: #e2e8f0;
+  --line: #e2e8f0;
+  --line-strong: #cbd5e1;
+  --text: #0f172a;
+  --muted: #64748b;
+  --primary: #2563eb;
+  --primary-solid: #2563eb;
+  --primary-active: #1d4ed8;
+  --primary-dim: #eff6ff;
+  --green: #047857;
+  --green-action: #059669;
+  --on-green: #ffffff;
+  --green-dim: #ecfdf5;
+  --red: #e11d48;
+  --red-dim: #fff1f2;
+  --simulation: #c2410c;
+  --simulation-ink: #ffffff;
+  --queue-ink: #ffffff;
+  --queue-bid-low: #064326;
+  --queue-bid-high: #08783e;
+  --queue-ask-low: #611025;
+  --queue-ask-high: #a51c3b;
+  --chart-panel: #f8fafc;
+  --chart-grid: #e2e8f0;
+  --chart-bid: #109b48;
+  --chart-ask: #cd2345;
+  --chart-bid-low: #064326;
+  --chart-ask-low: #611025;
+  --chart-bid-high: #16b455;
+  --chart-ask-high: #e63455;
+  --overlay-shadow: 0 8px 24px #0f172a14;
+}

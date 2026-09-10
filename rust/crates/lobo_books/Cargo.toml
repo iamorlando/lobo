@@ -1,0 +1,39 @@
+[package]
+name = "lobo_books"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+lobo_models = { workspace = true }
+lobo_primitives = { workspace = true}
+lobo_storage = { workspace = true}
+lobo_events = { workspace = true}
+pyo3 = { version = "0.29.0", features = ["multiple-pymethods"], optional = true }
+tokio = "1.53.1"
+parking_lot = { version = "0.12.5", optional = true }
+
+[features]
+default = []
+polars = ["lobo_storage/polars"]
+
+python = [
+    "dep:pyo3",
+    "dep:parking_lot",
+    "lobo_models/server-api",
+    "lobo_models/python",
+    "lobo_primitives/python",
+    "lobo_storage/python",
+]
+python-polars = ["python", "polars", "lobo_storage/python-polars"]
+
+[dev-dependencies]
+criterion = "0.8.2"
+rand = { workspace = true }
+
+[[bench]]
+name = "simulation"
+harness = false
+
+[lints]
+workspace = true

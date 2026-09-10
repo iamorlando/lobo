@@ -1,0 +1,22 @@
+{
+  "name": "lobo-adapters",
+  "version": "0.2.0",
+  "description": "Optional plugin wrapper for universal lobo adapter skills with bundled guides, examples, and tests.",
+  "author": {
+    "name": "Orlando Calvo",
+    "url": "https://github.com/iamorlando"
+  },
+  "repository": "https://github.com/iamorlando/loblib",
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Lobo Adapters",
+    "shortDescription": "Build and test Python market-data adapters.",
+    "longDescription": "Two portable skills for adapters, instrument discovery, subscriptions, Polars outputs, and hosted web UI tests. Each includes repository documentation, complete examples, and local test fixtures. No repository access or Rust toolchain is required; MCP integrations are optional.",
+    "developerName": "Orlando Calvo",
+    "category": "Productivity",
+    "capabilities": ["Write", "Interactive"],
+    "defaultPrompt": ["Create a Python adapter for my market-data feed.", "Test my adapter and inspect its hosted terminal."]
+  },
+  "mcpServers": "./.mcp.json"
+}

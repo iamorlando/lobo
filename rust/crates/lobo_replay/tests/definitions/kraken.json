@@ -1,0 +1,712 @@
+{
+  "format": {
+    "format": "json",
+    "messages": [
+      {
+        "condition": {
+          "op": "eq",
+          "args": [
+            {
+              "op": "field",
+              "path": [
+                "success"
+              ]
+            },
+            {
+              "op": "literal",
+              "value": false
+            }
+          ]
+        },
+        "actions": [
+          {
+            "action": "fail",
+            "message": "Subscription request failed"
+          }
+        ]
+      },
+      {
+        "condition": {
+          "op": "eq",
+          "args": [
+            {
+              "op": "field",
+              "path": [
+                "channel"
+              ]
+            },
+            {
+              "op": "literal",
+              "value": "instrument"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "action": "for_each",
+            "items": {
+              "op": "field",
+              "path": [
+                "data",
+                "pairs"
+              ]
+            },
+            "actions": [
+              {
+                "action": "when",
+                "condition": {
+                  "op": "and",
+                  "args": [
+                    {
+                      "op": "ne",
+                      "args": [
+                        {
+                          "op": "field",
+                          "path": [
+                            "status"
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": "delisted"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "ne",
+                      "args": [
+                        {
+                          "op": "field",
+                          "path": [
+                            "status"
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": "work_in_progress"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "actions": [
+                  {
+                    "action": "register",
+                    "symbol": {
+                      "op": "field",
+                      "path": [
+                        "symbol"
+                      ]
+                    },
+                    "price_decimals": {
+                      "op": "field",
+                      "path": [
+                        "price_precision"
+                      ]
+                    },
+                    "quantity_decimals": {
+                      "op": "field",
+                      "path": [
+                        "qty_precision"
+                      ]
+                    },
+                    "key": {
+                      "op": "literal",
+                      "value": null
+                    },
+                    "policy": {
+                      "op": "literal",
+                      "value": "no_updates"
+                    }
+                  }
+                ],
+                "otherwise": []
+              }
+            ],
+            "order_by": null,
+            "unique_by": null
+          },
+          {
+            "action": "subscribe"
+          }
+        ]
+      },
+      {
+        "condition": {
+          "op": "eq",
+          "args": [
+            {
+              "op": "field",
+              "path": [
+                "channel"
+              ]
+            },
+            {
+              "op": "literal",
+              "value": "book"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "action": "for_each",
+            "items": {
+              "op": "field",
+              "path": [
+                "data"
+              ]
+            },
+            "actions": [
+              {
+                "action": "book",
+                "symbol": {
+                  "op": "field",
+                  "path": [
+                    "symbol"
+                  ]
+                },
+                "actions": [
+                  {
+                    "action": "for_each",
+                    "items": {
+                      "op": "field",
+                      "path": [
+                        "asks"
+                      ]
+                    },
+                    "actions": [
+                      {
+                        "action": "level",
+                        "side": {
+                          "op": "literal",
+                          "value": "sell"
+                        },
+                        "price": {
+                          "op": "decimal",
+                          "args": [
+                            {
+                              "op": "field",
+                              "path": [
+                                "price"
+                              ]
+                            },
+                            {
+                              "op": "variable",
+                              "name": "price_decimals"
+                            }
+                          ]
+                        },
+                        "quantity": {
+                          "op": "decimal",
+                          "args": [
+                            {
+                              "op": "field",
+                              "path": [
+                                "qty"
+                              ]
+                            },
+                            {
+                              "op": "variable",
+                              "name": "quantity_decimals"
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    "order_by": null,
+                    "unique_by": null
+                  },
+                  {
+                    "action": "for_each",
+                    "items": {
+                      "op": "field",
+                      "path": [
+                        "bids"
+                      ]
+                    },
+                    "actions": [
+                      {
+                        "action": "level",
+                        "side": {
+                          "op": "literal",
+                          "value": "buy"
+                        },
+                        "price": {
+                          "op": "decimal",
+                          "args": [
+                            {
+                              "op": "field",
+                              "path": [
+                                "price"
+                              ]
+                            },
+                            {
+                              "op": "variable",
+                              "name": "price_decimals"
+                            }
+                          ]
+                        },
+                        "quantity": {
+                          "op": "decimal",
+                          "args": [
+                            {
+                              "op": "field",
+                              "path": [
+                                "qty"
+                              ]
+                            },
+                            {
+                              "op": "variable",
+                              "name": "quantity_decimals"
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    "order_by": null,
+                    "unique_by": null
+                  }
+                ],
+                "snapshot": {
+                  "op": "eq",
+                  "args": [
+                    {
+                      "op": "root",
+                      "path": [
+                        "type"
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": "snapshot"
+                    }
+                  ]
+                },
+                "timestamp": {
+                  "op": "timestamp",
+                  "args": [
+                    {
+                      "op": "field",
+                      "path": [
+                        "timestamp"
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": "rfc3339"
+                    }
+                  ]
+                },
+                "depth": 10,
+                "checksum": {
+                  "expected": {
+                    "op": "field",
+                    "path": [
+                      "checksum"
+                    ]
+                  },
+                  "view": "levels",
+                  "depth": 10,
+                  "sides": [
+                    "sell",
+                    "buy"
+                  ],
+                  "fields": [
+                    "price",
+                    "quantity"
+                  ],
+                  "separator": "",
+                  "interleave": false,
+                  "format": "decimal_digits",
+                  "signed": false,
+                  "priority": "fifo",
+                  "on_failure": [
+                    {
+                      "action": "send",
+                      "message": {
+                        "op": "object",
+                        "path": [
+                          "method",
+                          "params"
+                        ],
+                        "args": [
+                          {
+                            "op": "literal",
+                            "value": "unsubscribe"
+                          },
+                          {
+                            "op": "object",
+                            "path": [
+                              "channel",
+                              "symbol",
+                              "depth"
+                            ],
+                            "args": [
+                              {
+                                "op": "literal",
+                                "value": "book"
+                              },
+                              {
+                                "op": "array",
+                                "args": [
+                                  {
+                                    "op": "variable",
+                                    "name": "symbol"
+                                  }
+                                ]
+                              },
+                              {
+                                "op": "literal",
+                                "value": 10
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "action": "send",
+                      "message": {
+                        "op": "object",
+                        "path": [
+                          "method",
+                          "params"
+                        ],
+                        "args": [
+                          {
+                            "op": "literal",
+                            "value": "subscribe"
+                          },
+                          {
+                            "op": "object",
+                            "path": [
+                              "channel",
+                              "symbol",
+                              "depth",
+                              "snapshot"
+                            ],
+                            "args": [
+                              {
+                                "op": "literal",
+                                "value": "book"
+                              },
+                              {
+                                "op": "array",
+                                "args": [
+                                  {
+                                    "op": "variable",
+                                    "name": "symbol"
+                                  }
+                                ]
+                              },
+                              {
+                                "op": "literal",
+                                "value": 10
+                              },
+                              {
+                                "op": "literal",
+                                "value": true
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "ready": true
+              }
+            ],
+            "order_by": null,
+            "unique_by": null
+          }
+        ]
+      },
+      {
+        "condition": {
+          "op": "and",
+          "args": [
+            {
+              "op": "eq",
+              "args": [
+                {
+                  "op": "field",
+                  "path": [
+                    "channel"
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": "trade"
+                }
+              ]
+            },
+            {
+              "op": "eq",
+              "args": [
+                {
+                  "op": "field",
+                  "path": [
+                    "type"
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": "update"
+                }
+              ]
+            }
+          ]
+        },
+        "actions": [
+          {
+            "action": "for_each",
+            "items": {
+              "op": "field",
+              "path": [
+                "data"
+              ]
+            },
+            "actions": [
+              {
+                "action": "book",
+                "symbol": {
+                  "op": "field",
+                  "path": [
+                    "symbol"
+                  ]
+                },
+                "actions": [
+                  {
+                    "action": "trade",
+                    "price": {
+                      "op": "decimal",
+                      "args": [
+                        {
+                          "op": "field",
+                          "path": [
+                            "price"
+                          ]
+                        },
+                        {
+                          "op": "variable",
+                          "name": "price_decimals"
+                        }
+                      ]
+                    },
+                    "quantity": {
+                      "op": "decimal",
+                      "args": [
+                        {
+                          "op": "field",
+                          "path": [
+                            "qty"
+                          ]
+                        },
+                        {
+                          "op": "variable",
+                          "name": "quantity_decimals"
+                        }
+                      ]
+                    },
+                    "side": {
+                      "op": "map",
+                      "args": [
+                        {
+                          "op": "field",
+                          "path": [
+                            "side"
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": {
+                            "buy": "sell",
+                            "sell": "buy"
+                          }
+                        },
+                        {
+                          "op": "literal",
+                          "value": null
+                        }
+                      ]
+                    },
+                    "timestamp": {
+                      "op": "timestamp",
+                      "args": [
+                        {
+                          "op": "field",
+                          "path": [
+                            "timestamp"
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": "rfc3339"
+                        }
+                      ]
+                    },
+                    "id": {
+                      "op": "field",
+                      "path": [
+                        "trade_id"
+                      ]
+                    }
+                  }
+                ],
+                "snapshot": {
+                  "op": "literal",
+                  "value": false
+                },
+                "timestamp": {
+                  "op": "timestamp",
+                  "args": [
+                    {
+                      "op": "field",
+                      "path": [
+                        "timestamp"
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": "rfc3339"
+                    }
+                  ]
+                },
+                "depth": 0,
+                "checksum": null,
+                "ready": false
+              }
+            ],
+            "order_by": null,
+            "unique_by": null
+          }
+        ]
+      }
+    ]
+  },
+  "connect": [
+    {
+      "action": "send",
+      "message": {
+        "op": "literal",
+        "value": {
+          "method": "subscribe",
+          "params": {
+            "channel": "instrument",
+            "snapshot": true
+          }
+        }
+      }
+    }
+  ],
+  "subscriptions": [
+    {
+      "action": "send",
+      "message": {
+        "op": "object",
+        "path": [
+          "method",
+          "params"
+        ],
+        "args": [
+          {
+            "op": "literal",
+            "value": "subscribe"
+          },
+          {
+            "op": "object",
+            "path": [
+              "channel",
+              "symbol",
+              "depth",
+              "snapshot"
+            ],
+            "args": [
+              {
+                "op": "literal",
+                "value": "book"
+              },
+              {
+                "op": "array",
+                "args": [
+                  {
+                    "op": "variable",
+                    "name": "symbol"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": 10
+              },
+              {
+                "op": "literal",
+                "value": true
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "action": "send",
+      "message": {
+        "op": "object",
+        "path": [
+          "method",
+          "params"
+        ],
+        "args": [
+          {
+            "op": "literal",
+            "value": "subscribe"
+          },
+          {
+            "op": "object",
+            "path": [
+              "channel",
+              "symbol",
+              "snapshot"
+            ],
+            "args": [
+              {
+                "op": "literal",
+                "value": "trade"
+              },
+              {
+                "op": "array",
+                "args": [
+                  {
+                    "op": "variable",
+                    "name": "symbol"
+                  }
+                ]
+              },
+              {
+                "op": "literal",
+                "value": false
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "bootstrap": [],
+  "keepalive": [
+    {
+      "action": "send",
+      "message": {
+        "op": "literal",
+        "value": {
+          "method": "ping"
+        }
+      }
+    }
+  ],
+  "simulation_note": null,
+  "reconcile_window_ns": 250000000,
+  "reconcile_capacity": 4096,
+  "symbols_per_connection": 0
+}

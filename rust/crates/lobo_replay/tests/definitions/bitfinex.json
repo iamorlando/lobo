@@ -1,0 +1,1271 @@
+{
+  "format": {
+    "format": "json",
+    "messages": [
+      {
+        "condition": {
+          "op": "eq",
+          "args": [
+            {
+              "op": "field",
+              "path": [
+                "event"
+              ]
+            },
+            {
+              "op": "literal",
+              "value": "conf"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "action": "when",
+            "condition": {
+              "op": "and",
+              "args": [
+                {
+                  "op": "eq",
+                  "args": [
+                    {
+                      "op": "field",
+                      "path": [
+                        "status"
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": "OK"
+                    }
+                  ]
+                },
+                {
+                  "op": "eq",
+                  "args": [
+                    {
+                      "op": "field",
+                      "path": [
+                        "flags"
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": 229376
+                    }
+                  ]
+                }
+              ]
+            },
+            "actions": [
+              {
+                "action": "subscribe"
+              }
+            ],
+            "otherwise": [
+              {
+                "action": "fail",
+                "message": "Required feed flags were rejected"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "condition": {
+          "op": "eq",
+          "args": [
+            {
+              "op": "field",
+              "path": [
+                "event"
+              ]
+            },
+            {
+              "op": "literal",
+              "value": "subscribed"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "action": "when",
+            "condition": {
+              "op": "or",
+              "args": [
+                {
+                  "op": "eq",
+                  "args": [
+                    {
+                      "op": "field",
+                      "path": [
+                        "channel"
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": "trades"
+                    }
+                  ]
+                },
+                {
+                  "op": "and",
+                  "args": [
+                    {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "field",
+                          "path": [
+                            "channel"
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": "book"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "field",
+                          "path": [
+                            "prec"
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": "R0"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "actions": [
+              {
+                "action": "remember",
+                "table": "channels",
+                "key": {
+                  "op": "field",
+                  "path": [
+                    "chanId"
+                  ]
+                },
+                "value": {
+                  "op": "object",
+                  "path": [
+                    "symbol",
+                    "book"
+                  ],
+                  "args": [
+                    {
+                      "op": "strip_prefix",
+                      "args": [
+                        {
+                          "op": "field",
+                          "path": [
+                            "symbol"
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": "t"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "field",
+                          "path": [
+                            "channel"
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": "book"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            ],
+            "otherwise": [
+              {
+                "action": "fail",
+                "message": "Unexpected subscription"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "condition": {
+          "op": "or",
+          "args": [
+            {
+              "op": "eq",
+              "args": [
+                {
+                  "op": "field",
+                  "path": [
+                    "event"
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": "error"
+                }
+              ]
+            },
+            {
+              "op": "eq",
+              "args": [
+                {
+                  "op": "field",
+                  "path": [
+                    "event"
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": "unsubscribed"
+                }
+              ]
+            }
+          ]
+        },
+        "actions": [
+          {
+            "action": "fail",
+            "message": "Subscription failed or ended; reconnect required"
+          }
+        ]
+      },
+      {
+        "condition": {
+          "op": "eq",
+          "args": [
+            {
+              "op": "field",
+              "path": [
+                "event"
+              ]
+            },
+            {
+              "op": "literal",
+              "value": "info"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "action": "when",
+            "condition": {
+              "op": "or",
+              "args": [
+                {
+                  "op": "or",
+                  "args": [
+                    {
+                      "op": "and",
+                      "args": [
+                        {
+                          "op": "exists",
+                          "args": [
+                            {
+                              "op": "field",
+                              "path": [
+                                "version"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "op": "ne",
+                          "args": [
+                            {
+                              "op": "field",
+                              "path": [
+                                "version"
+                              ]
+                            },
+                            {
+                              "op": "literal",
+                              "value": 2
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "field",
+                          "path": [
+                            "platform",
+                            "status"
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": 0
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "op": "map",
+                  "args": [
+                    {
+                      "op": "field",
+                      "path": [
+                        "code"
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": {
+                        "20051": true,
+                        "20060": true,
+                        "20061": true
+                      }
+                    },
+                    {
+                      "op": "literal",
+                      "value": false
+                    }
+                  ]
+                }
+              ]
+            },
+            "actions": [
+              {
+                "action": "fail",
+                "message": "Feed restart or unsupported version; reconnect required"
+              }
+            ],
+            "otherwise": []
+          }
+        ]
+      },
+      {
+        "condition": {
+          "op": "is_array",
+          "args": [
+            {
+              "op": "field",
+              "path": []
+            }
+          ]
+        },
+        "actions": [
+          {
+            "action": "sequence",
+            "value": {
+              "op": "field",
+              "path": [
+                -2
+              ]
+            },
+            "key": {
+              "op": "literal",
+              "value": null
+            },
+            "reset": false
+          },
+          {
+            "action": "let",
+            "name": "clock",
+            "value": {
+              "op": "timestamp",
+              "args": [
+                {
+                  "op": "field",
+                  "path": [
+                    -1
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": "ms"
+                }
+              ]
+            }
+          },
+          {
+            "action": "let",
+            "name": "channel",
+            "value": {
+              "op": "lookup",
+              "args": [
+                {
+                  "op": "literal",
+                  "value": "channels"
+                },
+                {
+                  "op": "field",
+                  "path": [
+                    0
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "action": "when",
+            "condition": {
+              "op": "exists",
+              "args": [
+                {
+                  "op": "variable",
+                  "name": "channel"
+                }
+              ]
+            },
+            "actions": [],
+            "otherwise": [
+              {
+                "action": "fail",
+                "message": "Unknown channel"
+              }
+            ]
+          },
+          {
+            "action": "let",
+            "name": "symbol",
+            "value": {
+              "op": "get",
+              "args": [
+                {
+                  "op": "variable",
+                  "name": "channel"
+                },
+                {
+                  "op": "literal",
+                  "value": [
+                    "symbol"
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "action": "when",
+            "condition": {
+              "op": "eq",
+              "args": [
+                {
+                  "op": "get",
+                  "args": [
+                    {
+                      "op": "variable",
+                      "name": "channel"
+                    },
+                    {
+                      "op": "literal",
+                      "value": [
+                        "book"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": true
+                }
+              ]
+            },
+            "actions": [
+              {
+                "action": "when",
+                "condition": {
+                  "op": "eq",
+                  "args": [
+                    {
+                      "op": "field",
+                      "path": [
+                        1
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": "cs"
+                    }
+                  ]
+                },
+                "actions": [
+                  {
+                    "action": "book",
+                    "symbol": {
+                      "op": "get",
+                      "args": [
+                        {
+                          "op": "variable",
+                          "name": "channel"
+                        },
+                        {
+                          "op": "literal",
+                          "value": [
+                            "symbol"
+                          ]
+                        }
+                      ]
+                    },
+                    "actions": [],
+                    "snapshot": {
+                      "op": "literal",
+                      "value": false
+                    },
+                    "timestamp": {
+                      "op": "variable",
+                      "name": "clock"
+                    },
+                    "depth": 0,
+                    "checksum": {
+                      "expected": {
+                        "op": "field",
+                        "path": [
+                          2
+                        ]
+                      },
+                      "view": "orders",
+                      "depth": 25,
+                      "sides": [
+                        "buy",
+                        "sell"
+                      ],
+                      "fields": [
+                        "id",
+                        "signed_quantity"
+                      ],
+                      "separator": ":",
+                      "interleave": true,
+                      "format": "ecmascript",
+                      "signed": true,
+                      "priority": "id",
+                      "on_failure": []
+                    },
+                    "ready": true
+                  }
+                ],
+                "otherwise": []
+              },
+              {
+                "action": "when",
+                "condition": {
+                  "op": "is_array",
+                  "args": [
+                    {
+                      "op": "field",
+                      "path": [
+                        1
+                      ]
+                    }
+                  ]
+                },
+                "actions": [
+                  {
+                    "action": "book",
+                    "symbol": {
+                      "op": "get",
+                      "args": [
+                        {
+                          "op": "variable",
+                          "name": "channel"
+                        },
+                        {
+                          "op": "literal",
+                          "value": [
+                            "symbol"
+                          ]
+                        }
+                      ]
+                    },
+                    "actions": [
+                      {
+                        "action": "when",
+                        "condition": {
+                          "op": "ne",
+                          "args": [
+                            {
+                              "op": "lookup",
+                              "args": [
+                                {
+                                  "op": "literal",
+                                  "value": "snapshots"
+                                },
+                                {
+                                  "op": "field",
+                                  "path": [
+                                    0
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "op": "literal",
+                              "value": true
+                            }
+                          ]
+                        },
+                        "actions": [
+                          {
+                            "action": "for_each",
+                            "items": {
+                              "op": "field",
+                              "path": [
+                                1
+                              ]
+                            },
+                            "actions": [
+                              {
+                                "action": "add",
+                                "id": {
+                                  "op": "field",
+                                  "path": [
+                                    0
+                                  ]
+                                },
+                                "side": {
+                                  "op": "choose",
+                                  "args": [
+                                    {
+                                      "op": "gt",
+                                      "args": [
+                                        {
+                                          "op": "field",
+                                          "path": [
+                                            2
+                                          ]
+                                        },
+                                        {
+                                          "op": "literal",
+                                          "value": 0
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "op": "literal",
+                                      "value": "buy"
+                                    },
+                                    {
+                                      "op": "literal",
+                                      "value": "sell"
+                                    }
+                                  ]
+                                },
+                                "price": {
+                                  "op": "decimal",
+                                  "args": [
+                                    {
+                                      "op": "field",
+                                      "path": [
+                                        1
+                                      ]
+                                    },
+                                    {
+                                      "op": "literal",
+                                      "value": 8
+                                    }
+                                  ]
+                                },
+                                "quantity": {
+                                  "op": "decimal",
+                                  "args": [
+                                    {
+                                      "op": "abs",
+                                      "args": [
+                                        {
+                                          "op": "field",
+                                          "path": [
+                                            2
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "op": "literal",
+                                      "value": 8
+                                    }
+                                  ]
+                                },
+                                "timestamp": {
+                                  "op": "variable",
+                                  "name": "clock"
+                                }
+                              }
+                            ],
+                            "order_by": {
+                              "op": "field",
+                              "path": [
+                                0
+                              ]
+                            },
+                            "unique_by": {
+                              "op": "field",
+                              "path": [
+                                0
+                              ]
+                            }
+                          }
+                        ],
+                        "otherwise": [
+                          {
+                            "action": "for_each",
+                            "items": {
+                              "op": "array",
+                              "args": [
+                                {
+                                  "op": "root",
+                                  "path": [
+                                    1
+                                  ]
+                                }
+                              ]
+                            },
+                            "actions": [
+                              {
+                                "action": "upsert",
+                                "id": {
+                                  "op": "field",
+                                  "path": [
+                                    0
+                                  ]
+                                },
+                                "side": {
+                                  "op": "choose",
+                                  "args": [
+                                    {
+                                      "op": "gt",
+                                      "args": [
+                                        {
+                                          "op": "field",
+                                          "path": [
+                                            2
+                                          ]
+                                        },
+                                        {
+                                          "op": "literal",
+                                          "value": 0
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "op": "literal",
+                                      "value": "buy"
+                                    },
+                                    {
+                                      "op": "literal",
+                                      "value": "sell"
+                                    }
+                                  ]
+                                },
+                                "price": {
+                                  "op": "choose",
+                                  "args": [
+                                    {
+                                      "op": "eq",
+                                      "args": [
+                                        {
+                                          "op": "field",
+                                          "path": [
+                                            1
+                                          ]
+                                        },
+                                        {
+                                          "op": "literal",
+                                          "value": 0
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "op": "literal",
+                                      "value": null
+                                    },
+                                    {
+                                      "op": "decimal",
+                                      "args": [
+                                        {
+                                          "op": "field",
+                                          "path": [
+                                            1
+                                          ]
+                                        },
+                                        {
+                                          "op": "literal",
+                                          "value": 8
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                "quantity": {
+                                  "op": "decimal",
+                                  "args": [
+                                    {
+                                      "op": "abs",
+                                      "args": [
+                                        {
+                                          "op": "field",
+                                          "path": [
+                                            2
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "op": "literal",
+                                      "value": 8
+                                    }
+                                  ]
+                                },
+                                "timestamp": {
+                                  "op": "variable",
+                                  "name": "clock"
+                                }
+                              }
+                            ],
+                            "order_by": null,
+                            "unique_by": null
+                          }
+                        ]
+                      }
+                    ],
+                    "snapshot": {
+                      "op": "ne",
+                      "args": [
+                        {
+                          "op": "lookup",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "snapshots"
+                            },
+                            {
+                              "op": "field",
+                              "path": [
+                                0
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": true
+                        }
+                      ]
+                    },
+                    "timestamp": {
+                      "op": "variable",
+                      "name": "clock"
+                    },
+                    "depth": 0,
+                    "checksum": null,
+                    "ready": false
+                  },
+                  {
+                    "action": "remember",
+                    "table": "snapshots",
+                    "key": {
+                      "op": "field",
+                      "path": [
+                        0
+                      ]
+                    },
+                    "value": {
+                      "op": "literal",
+                      "value": true
+                    }
+                  }
+                ],
+                "otherwise": []
+              }
+            ],
+            "otherwise": [
+              {
+                "action": "when",
+                "condition": {
+                  "op": "or",
+                  "args": [
+                    {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "field",
+                          "path": [
+                            1
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": "te"
+                        }
+                      ]
+                    },
+                    {
+                      "op": "eq",
+                      "args": [
+                        {
+                          "op": "field",
+                          "path": [
+                            1
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": "tu"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "actions": [
+                  {
+                    "action": "book",
+                    "symbol": {
+                      "op": "get",
+                      "args": [
+                        {
+                          "op": "variable",
+                          "name": "channel"
+                        },
+                        {
+                          "op": "literal",
+                          "value": [
+                            "symbol"
+                          ]
+                        }
+                      ]
+                    },
+                    "actions": [
+                      {
+                        "action": "for_each",
+                        "items": {
+                          "op": "array",
+                          "args": [
+                            {
+                              "op": "root",
+                              "path": [
+                                2
+                              ]
+                            }
+                          ]
+                        },
+                        "actions": [
+                          {
+                            "action": "trade",
+                            "price": {
+                              "op": "decimal",
+                              "args": [
+                                {
+                                  "op": "field",
+                                  "path": [
+                                    3
+                                  ]
+                                },
+                                {
+                                  "op": "literal",
+                                  "value": 8
+                                }
+                              ]
+                            },
+                            "quantity": {
+                              "op": "decimal",
+                              "args": [
+                                {
+                                  "op": "abs",
+                                  "args": [
+                                    {
+                                      "op": "field",
+                                      "path": [
+                                        2
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "op": "literal",
+                                  "value": 8
+                                }
+                              ]
+                            },
+                            "side": {
+                              "op": "choose",
+                              "args": [
+                                {
+                                  "op": "gt",
+                                  "args": [
+                                    {
+                                      "op": "field",
+                                      "path": [
+                                        2
+                                      ]
+                                    },
+                                    {
+                                      "op": "literal",
+                                      "value": 0
+                                    }
+                                  ]
+                                },
+                                {
+                                  "op": "literal",
+                                  "value": "sell"
+                                },
+                                {
+                                  "op": "literal",
+                                  "value": "buy"
+                                }
+                              ]
+                            },
+                            "timestamp": {
+                              "op": "timestamp",
+                              "args": [
+                                {
+                                  "op": "field",
+                                  "path": [
+                                    1
+                                  ]
+                                },
+                                {
+                                  "op": "literal",
+                                  "value": "ms"
+                                }
+                              ]
+                            },
+                            "id": {
+                              "op": "field",
+                              "path": [
+                                0
+                              ]
+                            }
+                          }
+                        ],
+                        "order_by": null,
+                        "unique_by": null
+                      }
+                    ],
+                    "snapshot": {
+                      "op": "literal",
+                      "value": false
+                    },
+                    "timestamp": {
+                      "op": "variable",
+                      "name": "clock"
+                    },
+                    "depth": 0,
+                    "checksum": null,
+                    "ready": false
+                  }
+                ],
+                "otherwise": []
+              },
+              {
+                "action": "when",
+                "condition": {
+                  "op": "is_array",
+                  "args": [
+                    {
+                      "op": "field",
+                      "path": [
+                        1
+                      ]
+                    }
+                  ]
+                },
+                "actions": [
+                  {
+                    "action": "for_each",
+                    "items": {
+                      "op": "field",
+                      "path": [
+                        1
+                      ]
+                    },
+                    "actions": [
+                      {
+                        "action": "trade_history",
+                        "id": {
+                          "op": "field",
+                          "path": [
+                            0
+                          ]
+                        }
+                      }
+                    ],
+                    "order_by": null,
+                    "unique_by": null
+                  }
+                ],
+                "otherwise": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "connect": [
+    {
+      "action": "send",
+      "message": {
+        "op": "literal",
+        "value": {
+          "event": "conf",
+          "flags": 229376
+        }
+      }
+    }
+  ],
+  "subscriptions": [
+    {
+      "action": "send",
+      "message": {
+        "op": "object",
+        "path": [
+          "event",
+          "channel",
+          "symbol",
+          "prec",
+          "freq",
+          "len"
+        ],
+        "args": [
+          {
+            "op": "literal",
+            "value": "subscribe"
+          },
+          {
+            "op": "literal",
+            "value": "book"
+          },
+          {
+            "op": "concat",
+            "args": [
+              {
+                "op": "literal",
+                "value": "t"
+              },
+              {
+                "op": "variable",
+                "name": "symbol"
+              }
+            ]
+          },
+          {
+            "op": "literal",
+            "value": "R0"
+          },
+          {
+            "op": "literal",
+            "value": "F0"
+          },
+          {
+            "op": "literal",
+            "value": "250"
+          }
+        ]
+      }
+    },
+    {
+      "action": "send",
+      "message": {
+        "op": "object",
+        "path": [
+          "event",
+          "channel",
+          "symbol"
+        ],
+        "args": [
+          {
+            "op": "literal",
+            "value": "subscribe"
+          },
+          {
+            "op": "literal",
+            "value": "trades"
+          },
+          {
+            "op": "concat",
+            "args": [
+              {
+                "op": "literal",
+                "value": "t"
+              },
+              {
+                "op": "variable",
+                "name": "symbol"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "bootstrap": [
+    {
+      "name": "instruments",
+      "url": "https://api-pub.bitfinex.com/v2/conf/pub:list:pair:exchange",
+      "actions": [
+        {
+          "action": "for_each",
+          "items": {
+            "op": "field",
+            "path": [
+              0
+            ]
+          },
+          "actions": [
+            {
+              "action": "register",
+              "symbol": {
+                "op": "field",
+                "path": []
+              },
+              "price_decimals": {
+                "op": "literal",
+                "value": 8
+              },
+              "quantity_decimals": {
+                "op": "literal",
+                "value": 8
+              },
+              "key": {
+                "op": "literal",
+                "value": null
+              },
+              "policy": {
+                "op": "literal",
+                "value": "no_updates"
+              }
+            }
+          ],
+          "order_by": null,
+          "unique_by": null
+        }
+      ]
+    }
+  ],
+  "keepalive": [
+    {
+      "action": "send",
+      "message": {
+        "op": "literal",
+        "value": {
+          "event": "ping"
+        }
+      }
+    }
+  ],
+  "simulation_note": "Estimated FIFO from visible orders and public trades; corrections reconcile for 250 ms.",
+  "reconcile_window_ns": 250000000,
+  "reconcile_capacity": 4096,
+  "symbols_per_connection": 15
+}

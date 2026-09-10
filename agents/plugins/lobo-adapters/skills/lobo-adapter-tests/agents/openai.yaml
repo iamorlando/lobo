@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lobo Adapter Tests"
+  short_description: "Test Python adapters and their hosted web UI"
+  default_prompt: "Use $lobo-adapter-tests to test my Python adapter and inspect its hosted terminal."

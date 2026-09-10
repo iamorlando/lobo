@@ -1,0 +1,518 @@
+{
+  "format": {
+    "format": "json",
+    "messages": [
+      {
+        "condition": {
+          "op": "eq",
+          "args": [
+            {
+              "op": "field",
+              "path": [
+                "type"
+              ]
+            },
+            {
+              "op": "literal",
+              "value": "directory"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "action": "directory",
+            "items": {
+              "op": "field",
+              "path": [
+                "books"
+              ]
+            },
+            "symbol": {
+              "op": "field",
+              "path": [
+                "symbol"
+              ]
+            },
+            "actions": [
+              {
+                "action": "register",
+                "symbol": {
+                  "op": "field",
+                  "path": [
+                    "symbol"
+                  ]
+                },
+                "price_decimals": {
+                  "op": "field",
+                  "path": [
+                    "price_decimals"
+                  ]
+                },
+                "quantity_decimals": {
+                  "op": "field",
+                  "path": [
+                    "quantity_decimals"
+                  ]
+                },
+                "key": {
+                  "op": "literal",
+                  "value": null
+                },
+                "policy": {
+                  "op": "choose",
+                  "args": [
+                    {
+                      "op": "exists",
+                      "args": [
+                        {
+                          "op": "field",
+                          "path": [
+                            "policy"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "op": "field",
+                      "path": [
+                        "policy"
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": "full"
+                    }
+                  ]
+                }
+              }
+            ],
+            "on_remove": [
+              {
+                "action": "remember",
+                "table": "sequence",
+                "key": {
+                  "op": "variable",
+                  "name": "symbol"
+                },
+                "value": {
+                  "op": "literal",
+                  "value": null
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "condition": {
+          "op": "eq",
+          "args": [
+            {
+              "op": "field",
+              "path": [
+                "type"
+              ]
+            },
+            {
+              "op": "literal",
+              "value": "snapshot"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "action": "when",
+            "condition": {
+              "op": "or",
+              "args": [
+                {
+                  "op": "and",
+                  "args": [
+                    {
+                      "op": "exists",
+                      "args": [
+                        {
+                          "op": "lookup",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "sequence"
+                            },
+                            {
+                              "op": "field",
+                              "path": [
+                                "book",
+                                "symbol"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "op": "gt",
+                      "args": [
+                        {
+                          "op": "field",
+                          "path": [
+                            "sequence"
+                          ]
+                        },
+                        {
+                          "op": "lookup",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "sequence"
+                            },
+                            {
+                              "op": "field",
+                              "path": [
+                                "book",
+                                "symbol"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "op": "eq",
+                  "args": [
+                    {
+                      "op": "exists",
+                      "args": [
+                        {
+                          "op": "lookup",
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "sequence"
+                            },
+                            {
+                              "op": "field",
+                              "path": [
+                                "book",
+                                "symbol"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "op": "literal",
+                      "value": false
+                    }
+                  ]
+                }
+              ]
+            },
+            "actions": [
+              {
+                "action": "for_each",
+                "items": {
+                  "op": "array",
+                  "args": [
+                    {
+                      "op": "root",
+                      "path": [
+                        "book"
+                      ]
+                    }
+                  ]
+                },
+                "actions": [
+                  {
+                    "action": "register",
+                    "symbol": {
+                      "op": "field",
+                      "path": [
+                        "symbol"
+                      ]
+                    },
+                    "price_decimals": {
+                      "op": "field",
+                      "path": [
+                        "price_decimals"
+                      ]
+                    },
+                    "quantity_decimals": {
+                      "op": "field",
+                      "path": [
+                        "quantity_decimals"
+                      ]
+                    },
+                    "key": {
+                      "op": "literal",
+                      "value": null
+                    },
+                    "policy": {
+                      "op": "choose",
+                      "args": [
+                        {
+                          "op": "exists",
+                          "args": [
+                            {
+                              "op": "field",
+                              "path": [
+                                "policy"
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "op": "field",
+                          "path": [
+                            "policy"
+                          ]
+                        },
+                        {
+                          "op": "literal",
+                          "value": "full"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "order_by": null,
+                "unique_by": null
+              },
+              {
+                "action": "book",
+                "symbol": {
+                  "op": "field",
+                  "path": [
+                    "book",
+                    "symbol"
+                  ]
+                },
+                "actions": [
+                  {
+                    "action": "for_each",
+                    "items": {
+                      "op": "field",
+                      "path": [
+                        "orders"
+                      ]
+                    },
+                    "actions": [
+                      {
+                        "action": "order_command",
+                        "value": {
+                          "op": "object",
+                          "path": [
+                            "op",
+                            "order"
+                          ],
+                          "args": [
+                            {
+                              "op": "literal",
+                              "value": "add"
+                            },
+                            {
+                              "op": "field",
+                              "path": [
+                                "order"
+                              ]
+                            }
+                          ]
+                        },
+                        "timestamp": {
+                          "op": "field",
+                          "path": [
+                            "timestamp_ns"
+                          ]
+                        }
+                      }
+                    ],
+                    "order_by": null,
+                    "unique_by": null
+                  }
+                ],
+                "snapshot": {
+                  "op": "literal",
+                  "value": true
+                },
+                "timestamp": {
+                  "op": "field",
+                  "path": [
+                    "timestamp_ns"
+                  ]
+                },
+                "depth": 0,
+                "checksum": null,
+                "ready": true
+              },
+              {
+                "action": "remember",
+                "table": "sequence",
+                "key": {
+                  "op": "field",
+                  "path": [
+                    "book",
+                    "symbol"
+                  ]
+                },
+                "value": {
+                  "op": "field",
+                  "path": [
+                    "sequence"
+                  ]
+                }
+              },
+              {
+                "action": "sequence",
+                "value": {
+                  "op": "field",
+                  "path": [
+                    "sequence"
+                  ]
+                },
+                "key": {
+                  "op": "field",
+                  "path": [
+                    "book",
+                    "symbol"
+                  ]
+                },
+                "reset": true
+              }
+            ],
+            "otherwise": []
+          }
+        ]
+      },
+      {
+        "condition": {
+          "op": "eq",
+          "args": [
+            {
+              "op": "field",
+              "path": [
+                "type"
+              ]
+            },
+            {
+              "op": "literal",
+              "value": "update"
+            }
+          ]
+        },
+        "actions": [
+          {
+            "action": "when",
+            "condition": {
+              "op": "gt",
+              "args": [
+                {
+                  "op": "field",
+                  "path": [
+                    "sequence"
+                  ]
+                },
+                {
+                  "op": "lookup",
+                  "args": [
+                    {
+                      "op": "literal",
+                      "value": "sequence"
+                    },
+                    {
+                      "op": "field",
+                      "path": [
+                        "book"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "actions": [
+              {
+                "action": "sequence",
+                "value": {
+                  "op": "field",
+                  "path": [
+                    "sequence"
+                  ]
+                },
+                "key": {
+                  "op": "field",
+                  "path": [
+                    "book"
+                  ]
+                },
+                "reset": false
+              },
+              {
+                "action": "book",
+                "symbol": {
+                  "op": "field",
+                  "path": [
+                    "book"
+                  ]
+                },
+                "actions": [
+                  {
+                    "action": "order_command",
+                    "value": {
+                      "op": "field",
+                      "path": [
+                        "command"
+                      ]
+                    },
+                    "timestamp": {
+                      "op": "variable",
+                      "name": "clock"
+                    }
+                  }
+                ],
+                "snapshot": {
+                  "op": "literal",
+                  "value": false
+                },
+                "timestamp": {
+                  "op": "field",
+                  "path": [
+                    "timestamp_ns"
+                  ]
+                },
+                "depth": 0,
+                "checksum": null,
+                "ready": true
+              },
+              {
+                "action": "remember",
+                "table": "sequence",
+                "key": {
+                  "op": "field",
+                  "path": [
+                    "book"
+                  ]
+                },
+                "value": {
+                  "op": "field",
+                  "path": [
+                    "sequence"
+                  ]
+                }
+              }
+            ],
+            "otherwise": []
+          }
+        ]
+      }
+    ]
+  },
+  "connect": [],
+  "subscriptions": [],
+  "bootstrap": [],
+  "keepalive": [],
+  "simulation_note": null,
+  "reconcile_window_ns": 250000000,
+  "reconcile_capacity": 4096,
+  "symbols_per_connection": 0
+}

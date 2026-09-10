@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lobo Adapter"
+  short_description: "Create market adapters with the Python package"
+  default_prompt: "Use $lobo-adapter to create a Python adapter for my market-data feed."

@@ -1,0 +1,19 @@
+# The web app builds from these sources; datasets and local artifacts stay local.
+**
+!Cargo.toml
+!Cargo.lock
+!LICENSE-MIT.md
+!rust
+!rust/crates
+!rust/crates/**
+!web
+!web/**
+**/target
+**/node_modules
+**/.next
+**/.vercel
+**/.env*
+**/*.tsbuildinfo
+web/out
+web/.server-build
+web/public/wasm

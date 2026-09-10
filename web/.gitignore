@@ -1,0 +1,8 @@
+node_modules/
+.next/
+.vercel
+out/
+*.tsbuildinfo
+public/wasm/*
+!public/wasm/.gitkeep
+.env*

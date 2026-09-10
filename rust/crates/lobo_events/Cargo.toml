@@ -1,0 +1,13 @@
+[package]
+name = "lobo_events"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+lobo_primitives = { workspace = true }
+lobo_models = { workspace = true }
+tokio = { version = "1.53.1", features = ["sync"] }
+
+[lints]
+workspace = true

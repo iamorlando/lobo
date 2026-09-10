@@ -1,0 +1,207 @@
+[project]
+name = "lobo"
+version = "0.1.0"
+description = "Native limit order books, market-data adapters, Polars outputs, and a hosted WebGPU terminal"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE-MIT.md"]
+authors = [{ name = "Orlando Calvo", email = "iamorlando@gmail.com" }]
+requires-python = ">=3.11,<4.0"
+
+
+dependencies = ["polars==1.43.2", "tzdata; sys_platform == 'win32'"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Rust",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Scientific/Engineering",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Repository = "https://github.com/iamorlando/lobo"
+Issues = "https://github.com/iamorlando/lobo/issues"
+
+[project.scripts]
+lobo = "lobo.cli:main"
+
+[tool.poetry]
+package-mode = false
+
+# Repository tools use Python 3.14; this narrower lock range does not change
+# the published library's project.requires-python or runtime dependencies.
+[tool.poetry.dependencies]
+python = ">=3.14,<4.0"
+
+[tool.poetry.group.dev.dependencies]
+numpy = ">=2.4.6,<3.0.0"
+pandas = ">=3.0.3,<4.0.0"
+lxml = ">=6.1.1,<7.0.0"
+itchfeed = { version = ">=1.6.4,<2.0.0", extras = ["cpp"] }
+isort = ">=8.0.1,<9.0.0"
+build = ">=1.4,<2.0"
+twine = ">=6.2,<7.0"
+websockets = ">=15,<17"
+basedpyright = "*"
+coverage = { version = "*", extras = ["toml"] }
+ipykernel = "*"
+markdown-callouts = "*"
+maturin = ">=1.10,<2.0"
+mkdocs = ">=1.6,<2.0"
+mkdocs-jupyter = "*"
+mkdocs-material = "*"
+mkdocstrings = { version = "*", extras = ["python"] }
+pandas-stubs = ">=3.0.3.260530,<4.0.0.0"
+pytest = "*"
+ruff = "*"
+pyperf = "^2.10.0"
+
+[build-system]
+requires = ["maturin>=1.14,<2.0"]
+build-backend = "build_backend"
+backend-path = ["."]
+
+[tool.maturin]
+module-name = "lobo._lobo"
+bindings = "pyo3"
+manifest-path = "rust/crates/lobo_py/Cargo.toml"
+features = ["pyo3/extension-module", "pyo3/abi3-py311", "polars", "concurrent"]
+python-source = "python"
+python-packages = ["lobo"]
+strip = true
+profile = "release"
+editable-profile = "dev"
+include = [
+    { path = "python/lobo/_web/**/*", format = ["wheel", "sdist"] },
+    { path = "build_backend.py", format = "sdist" },
+    { path = "scripts/test_wheel.py", format = "sdist" },
+    { path = "scripts/check_distributions.py", format = "sdist" },
+    { path = "python/tests/lobo/**/*.py", format = "sdist" },
+    { path = "python/examples/**/*.py", format = "sdist" },
+    { path = "packaging_tests/packaging/**/*.py", format = "sdist" },
+    { path = "docs/packaging.md", format = "sdist" },
+]
+exclude = ["**/__pycache__/**", "**/*.pyc", "**/.DS_Store"]
+
+[tool.cibuildwheel]
+build = "cp3{11,12,13,14}-*"
+archs = ["native"]
+skip = "*-musllinux_*"
+test-command = "python {project}/scripts/test_wheel.py"
+test-requires = ["pytest>=9,<10", "websockets>=15,<17", "tzdata"]
+build-frontend = "build"
+config-settings = { build-args = "--locked" }
+environment = { CARGO_NET_GIT_FETCH_WITH_CLI = "true", CARGO_TERM_COLOR = "always", CARGO_BUILD_JOBS = "2" }
+
+[tool.cibuildwheel.linux]
+before-all = "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain 1.96.1"
+environment = { PATH = "$HOME/.cargo/bin:$PATH", CARGO_NET_GIT_FETCH_WITH_CLI = "true", CARGO_TERM_COLOR = "always", CARGO_BUILD_JOBS = "2" }
+manylinux-x86_64-image = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
+
+[tool.cibuildwheel.macos]
+environment = { MACOSX_DEPLOYMENT_TARGET = "11.0", CARGO_BUILD_JOBS = "2" }
+
+[tool.ruff]
+include = [
+    "python/**/*.py",
+    "python/**/*.pyi",
+    "packaging_tests/**/*.py",
+    "packaging_tests/**/*.pyi",
+    "scripts/**/*.py",
+    "notebooks/**/*.py",
+    "notebooks/**/*.ipynb",
+]
+target-version = "py314"
+line-length = 88
+src = ["python"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+extend-select = [
+    "E",   # pycodestyle errors.
+    "W",   # PEP8 rules.
+    "I",   # Import sorting.
+    "D",   # Docstring rules.
+    "ANN", # Require type annotations.
+    "UP",  # Prefer modern Python syntax.
+    "N",   # PEP8 naming rules.
+    "B",   # Common bug-prone patterns.
+    "TRY", # Try-except rules.
+    "FBT", # Boolean argument rules.
+    "C90", # Function complexity rules.
+    "PTH", # Prefer pathlib over os.path.
+    "S",   # Security-related issues.
+    "EXE", # Executable/shebang consistency.
+    "RET", # Return statement rules.
+    "ARG", # Unused argument rules.
+]
+ignore = [
+    "D203",   # Conflicts with the Google docstring convention.
+    "D213",   # Conflicts with the Google docstring convention.
+    "TRY003", # Prefer custom error messages for clarity, for conciseness I am not defining custom exception classes.
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"packaging_tests/**/*.py" = [
+    "D",    # Tests should be clear, but do not need full Google docstrings.
+    "S101", # Pytest uses plain assertions for result introspection.
+]
+
+"python/lobo/**/*.py*" = [
+    "E501","D200","D212","ANN401","W291","PYI034","PYI029","ARG001","ANN001"
+] # this module has some long lines that are more readable without breaks, and it is not worth the effort to break them up.
+"scripts/**/*.py" = [
+    "S603", # Maintenance scripts run trusted local commands without shell=True.
+]
+
+
+# basedpyright configuration.
+[tool.basedpyright]
+extraPaths = ["python", "python/lobo"]
+include = ["python", "packaging_tests", "scripts"]
+exclude = ["**/__pycache__"]
+pythonVersion = "3.14"
+typeCheckingMode = "recommended"
+reportAny = "none"
+reportExplicitAny = "none"
+reportImplicitOverride = "none"
+reportIncompleteStub = "none"
+reportGeneralTypeIssues = "none"
+reportUnknownArgumentType="none"
+reportMissingModuleSource = "none"
+reportUnknownParameterType = "none"
+reportMissingParameterType= "none"
+reportUnusedParameter= "none"
+
+
+[tool.pytest.ini_options]
+pythonpath = ["python", "scripts"]
+testpaths = ["python/tests"]
+
+# coverage configuration. 
+[tool.coverage.run]
+branch = true
+data_file = "python/.coverage"
+source = ["python/lobo"]
+
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 95
+
+
+[tool.coverage.html]
+directory = "python/reports/coverage/html"

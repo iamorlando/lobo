@@ -1,0 +1,143 @@
+{
+  "repository": "https://github.com/iamorlando/loblib",
+  "snapshot": "Repository working-tree sources at packaging time; hashes identify exact content.",
+  "files": [
+    {
+      "file": "references/custom-adapters.md",
+      "source": "rust/crates/lobo_replay/src/custom/README.md",
+      "source_sha256": "f770556f5f64af0743d1b2931e4d8259fe2c5fdd364f20aa97a3cccf2f087388",
+      "bundled_sha256": "e040a65c919b2cabdfac6eee656bd29ca6c4124d381c0de14be15ec9d935917c",
+      "sections": [
+        [
+          "# Custom adapters",
+          "## Running and serving"
+        ],
+        [
+          "- `start()`",
+          "Complete Python definitions"
+        ]
+      ]
+    },
+    {
+      "file": "references/server.md",
+      "source": "rust/crates/lobo_server/README.md",
+      "source_sha256": "4901c063a631be57317906512f3dba50184797db8b20887d530cb1fe14c91e6d",
+      "bundled_sha256": "dcb077a6fe3460b97421665ccf6fc857f553b614d0f5f75ddbf337c3627e9c98",
+      "sections": [
+        [
+          "```python",
+          "## Transport and build"
+        ]
+      ]
+    },
+    {
+      "file": "references/hosted-adapters.md",
+      "source": "agents/references/hosted-adapters.md",
+      "source_sha256": "c7a1121290d130273f85b55c015080c39444f7e6e96f15cfbd305765604ca01f",
+      "bundled_sha256": "9f70374fd83fe11d0f8db7283f479b7c16990601a5efb85347050d96217c5524",
+      "sections": null
+    },
+    {
+      "file": "references/adapter-contract.md",
+      "source": "agents/references/adapter-contract.md",
+      "source_sha256": "a99d6ccebd0a46c26e89d18c0495fcfd4bfec0bf21658e399a8b77e7fad9e0c7",
+      "bundled_sha256": "ff4ba019a20b77a92b35cc1b05e87a9458c249d2081906a99cf78b732339c1be",
+      "sections": null
+    },
+    {
+      "file": "references/terminal.md",
+      "source": "web/README.md",
+      "source_sha256": "e2eca7a2e89771bdd327ecf5fd4640c3cc1ff5d032e4efc437c33432f7aeebf9",
+      "bundled_sha256": "fd8d479e36f736cf42c20fcd587a9fe28ddf8eb3c9269750dc6a8d0844926c5b",
+      "sections": [
+        [
+          "- The symbol box autocompletes",
+          "- Files must contain"
+        ],
+        [
+          "- **Book scope**",
+          "- **iTerm theme**"
+        ],
+        [
+          "## OHLC bars",
+          "The workspace fills"
+        ],
+        [
+          "Kraken supports the same four",
+          "`PriceChangeEvent`"
+        ],
+        [
+          "## Order simulation and level queues",
+          "An L3 limit simulation"
+        ],
+        [
+          "**No chart pixels",
+          "To retain the whole market"
+        ]
+      ]
+    },
+    {
+      "file": "references/examples/kraken.md",
+      "source": "python/examples/kraken/adapter.py",
+      "source_sha256": "0c847f3b8bb803e25ead3a3666553518381e8a307de149c82bc19ce514141f45",
+      "bundled_sha256": "bdf68f2877e7b91bf779ef5e16d70a738c101d96721f441d03aeeacc035e00f9",
+      "sections": null
+    },
+    {
+      "file": "references/examples/bitfinex.md",
+      "source": "python/examples/bitfinex/adapter.py",
+      "source_sha256": "12d87cb42be967ed67c2b3516804aca2f56649e716f024deadc147d4701e6e78",
+      "bundled_sha256": "85880178b4d4e0c3692898dc18d1f07904857ec285cde9d1794d1523aebc875f",
+      "sections": null
+    },
+    {
+      "file": "references/examples/polymarkets.md",
+      "source": "python/examples/polymarkets/adapter.py",
+      "source_sha256": "013818726b045633bc9b0a1573b57906123d3f6d4cbbaae64a9baa6543e17b43",
+      "bundled_sha256": "cf46f35d86c79318d3071917526f67436e93efce6a16278bcee066ec8ea94c35",
+      "sections": null
+    },
+    {
+      "file": "references/examples/itch.md",
+      "source": "python/examples/itch/adapter.py",
+      "source_sha256": "05be562dc1a8b68a5dd8746dee5f1aeddc0cacf3a3879633c5f5c5e53baeb84c",
+      "bundled_sha256": "ff26032f1a1b87fd83ceb2e8cdab05cf41655177c4f7e9cbcf16ab08b01b99b1",
+      "sections": null
+    },
+    {
+      "file": "references/examples/order_feed.md",
+      "source": "python/examples/order_feed/adapter.py",
+      "source_sha256": "bf86fb4a319d8c576ca83f7c1bf06043b65141447b7ad90bd62faddae2009e4a",
+      "bundled_sha256": "ee0f1bb55afa2952f66cd152d72a1d62ac0b84380465cfc511845298ae5e8c4a",
+      "sections": null
+    },
+    {
+      "file": "assets/tests/test_custom_adapter.py",
+      "source": "python/tests/lobo/test_custom_adapter.py",
+      "source_sha256": "a11c5d61c2accfd18712a9f8b6bb8cb4007fe209d18783761845600c0d5e8604",
+      "bundled_sha256": "a11c5d61c2accfd18712a9f8b6bb8cb4007fe209d18783761845600c0d5e8604",
+      "sections": null
+    },
+    {
+      "file": "assets/tests/test_hosted_discovery.py",
+      "source": "python/tests/lobo/test_hosted_discovery.py",
+      "source_sha256": "b471b8dbbd596089ab9aa0f0a3149a0cf5c6fcc33e18b31154305abae10558e6",
+      "bundled_sha256": "b471b8dbbd596089ab9aa0f0a3149a0cf5c6fcc33e18b31154305abae10558e6",
+      "sections": null
+    },
+    {
+      "file": "assets/tests/test_levels.py",
+      "source": "python/tests/lobo/test_levels.py",
+      "source_sha256": "6fac3f9cd4d34ea67d868501e0839cbf7b6efbf1668af4ca7fd2bc33c6601328",
+      "bundled_sha256": "6fac3f9cd4d34ea67d868501e0839cbf7b6efbf1668af4ca7fd2bc33c6601328",
+      "sections": null
+    },
+    {
+      "file": "assets/fixture_server.py",
+      "source": "agents/tests/fixture_server.py",
+      "source_sha256": "fb660b6d550900a3ad2acfc90a3da977e0651c47ec7092604480d6e1832f560f",
+      "bundled_sha256": "fb660b6d550900a3ad2acfc90a3da977e0651c47ec7092604480d6e1832f560f",
+      "sections": null
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "name": "lobo-web",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "wasm": "node scripts/build-wasm.mjs",
+    "predev": "npm run wasm",
+    "dev": "next dev --hostname 127.0.0.1",
+    "build": "npm run wasm && next build",
+    "build:vercel": "bash scripts/build-vercel.sh",
+    "build:server": "npm run wasm && node scripts/build-server.mjs",
+    "vercel": "npx --yes --package=vercel@59.15.0 vercel --cwd ..",
+    "deploy": "npm run vercel -- deploy --prod --archive=tgz",
+    "start": "next start --hostname 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.mjs",
+    "format": "prettier --write app components lib scripts tests next.config.ts",
+    "format:check": "prettier --check app components lib scripts tests next.config.ts"
+  },
+  "dependencies": {
+    "next": "16.3.4",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@webgpu/types": "^0.1.72",
+    "prettier": "3.9.6",
+    "typescript": "^5.9.3",
+    "wasm-pack": "0.15.0"
+  }
+}

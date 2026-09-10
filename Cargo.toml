@@ -1,0 +1,55 @@
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[workspace]
+resolver = "3"
+members = ["rust/crates/*"]
+default-members = [
+    "rust/crates/lobo",
+    "rust/crates/lobo_books",
+    "rust/crates/lobo_models",
+    "rust/crates/lobo_primitives",
+    "rust/crates/lobo_storage",
+    "rust/crates/lobo_adapters",
+    "rust/crates/lobo_replay",
+    "rust/crates/lobo_context",
+    "rust/crates/lobo_events",
+    "rust/crates/lobo_batchers",
+    "rust/crates/lobo_server"
+]
+
+[workspace.dependencies]
+lobo_primitives = { version = "0.1.0", path = "rust/crates/lobo_primitives", default-features = false }
+lobo_models = { version = "0.1.0", path = "rust/crates/lobo_models", default-features = false }
+lobo_books = { version = "0.1.0", path = "rust/crates/lobo_books", default-features = false }
+lobo_storage = { version = "0.1.0", path = "rust/crates/lobo_storage", default-features = false }
+lobo_adapters = { version = "0.1.0", path = "rust/crates/lobo_adapters", default-features = false }
+lobo_replay = { version = "0.1.0", path = "rust/crates/lobo_replay", default-features = false }
+lobo_context = { version = "0.1.0", path = "rust/crates/lobo_context", default-features = false }
+lobo_events = { version = "0.1.0", path = "rust/crates/lobo_events", default-features = false }
+lobo_server = { version = "0.1.0", path = "rust/crates/lobo_server", default-features = false }
+
+rand = "0.10.2"
+schemars = { version = "1.2.1", features = ["uuid1"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# The pyo3-polars tag is coupled to the Python Polars release. Keep every
+# workspace crate on this one source/version pair.
+polars = { git = "https://github.com/pola-rs/polars", tag = "py-1.43.2", version = "0.54.4", default-features = false }
+pyo3-polars = { git = "https://github.com/pola-rs/polars", tag = "py-1.43.2", version = "0.27.0", default-features = false }
+[workspace.lints.rust]
+
+[workspace.lints.clippy]
+
+
+[profile.profiling]
+inherits = "release"
+debug = true
+strip = false
+opt-level = 3            # Tells the compiler to apply all possible speed optimizations
+lto = "fat"              # Performs intensive Link-Time Optimization across all crates
+codegen-units = 1        # Reduces parallel code generation to enable superior inlining
+panic = "abort"          # Eliminates unwinding overhead, reducing binary bloat and context switching
+# strip = true

@@ -1,0 +1,78 @@
+[package]
+name = "lobo_adapters"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+lobo_context = { workspace = true }
+lobo_events = { workspace = true }
+itchy = { version = "0.3.4", optional = true }
+lobo_replay = { workspace = true }
+lobo_models = { workspace = true }
+lobo_primitives = { workspace = true }
+lobo_storage = { workspace = true }
+lobo_books = { workspace = true }
+polars = { workspace = true, features = ["is_between", "lazy", "rows", "strings", "temporal"], optional = true }
+pyo3 = { version = "0.29.0", optional = true }
+pyo3-polars = { workspace = true, features = ["lazy", "object"], optional = true }
+chrono = "0.4.45"
+chrono-tz = "0.10.4"
+serde_json = { version = "1.0", features = ["arbitrary_precision"], optional = true }
+
+[features]
+default = []
+server = ["lobo_replay/json"]
+kraken = ["dep:serde_json"]
+bitfinex = ["dep:serde_json"]
+itchy = ["dep:itchy"]
+polars = ["dep:polars", "lobo_replay/polars"]
+
+python = [
+    "dep:pyo3",
+    "lobo_replay/python",
+    "lobo_books/python",
+    "lobo_models/python",
+    "lobo_primitives/python",
+    "lobo_storage/python",
+]
+python-polars = [
+    "python",
+    "polars",
+    "dep:pyo3-polars",
+    "lobo_books/python-polars",
+    "lobo_storage/python-polars",
+]
+
+[dev-dependencies]
+crc32fast = "1.5"
+lobo_batchers = { path = "../lobo_batchers", default-features = false }
+lobo_context = { workspace = true }
+tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros", "time"] }
+criterion = "0.8.2"
+lobo_replay = { workspace = true, features = ["concurrent"] }
+lobo_storage = { workspace = true }
+
+[[bench]]
+name = "itch_stream"
+harness = false
+required-features = ["itchy"]
+
+[lints]
+workspace = true
+
+[[example]]
+name = "cpp_comparator"
+required-features = ["itchy"]
+
+[[example]]
+name = "intrusive_cpp_comparator"
+required-features = ["itchy"]
+
+[[example]]
+name = "itch_replay"
+required-features = ["itchy"]
+
+[[example]]
+name = "rust_comparator"
+required-features = ["itchy"]

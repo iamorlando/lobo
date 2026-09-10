@@ -1,0 +1,52 @@
+
+[package]
+name = "lobo"
+
+# authors = { workspace = true }
+# description = { workspace = true }
+version = { workspace = true }
+edition = { workspace = true }
+# readme = { workspace = true }
+# repository = { workspace = true }
+# keywords = { workspace = true }
+# categories = { workspace = true }
+license = { workspace = true }
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[lints]
+workspace = true
+
+[dependencies]
+lobo_primitives = { workspace = true }
+lobo_models = { workspace = true }
+lobo_books = { workspace = true }
+lobo_storage = { workspace = true }
+lobo_adapters = { workspace = true }
+lobo_replay = { workspace = true }
+lobo_context = { workspace = true }
+lobo_events = { workspace = true }
+
+[features]
+default = []
+polars = [
+    "lobo_adapters/polars",
+    "lobo_books/polars",
+    "lobo_replay/polars",
+    "lobo_storage/polars",
+]
+
+python = [
+    "lobo_models/python",
+    "lobo_primitives/python",
+    "lobo_storage/python",
+    "lobo_books/python",
+]
+python-polars = [
+    "python",
+    "polars",
+    "lobo_adapters/python-polars",
+    "lobo_books/python-polars",
+    "lobo_storage/python-polars",
+]

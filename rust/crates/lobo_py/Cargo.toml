@@ -1,0 +1,38 @@
+[package]
+name = "lobo_py"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+lobo_context = { workspace = true, features = ["python"] }
+lobo_events = { workspace = true }
+lobo_server = { workspace = true, features = ["python"] }
+pyo3 = { version = "0.29.0", features = ["experimental-inspect", "chrono"] }
+uuid = { version = "1.24.0", features = ["v5"] }
+lobo_books = { workspace = true, features = ["python"] }
+lobo_storage = { workspace = true, features = ["python"] }
+lobo_models = { workspace = true, features = ["python"] }
+lobo_primitives = { workspace = true }
+lobo_replay = { workspace = true, features = ["python"] }
+lobo_adapters = { workspace = true, features = ["itchy", "kraken", "bitfinex", "python"] }
+cfg-if = "1.0.4"
+
+[features]
+# Normal Python builds include Polars. Replay benchmarks disable defaults.
+default = ["polars"]
+polars = [
+    "lobo_adapters/python-polars",
+    "lobo_books/python-polars",
+    "lobo_replay/python-polars",
+    "lobo_storage/python-polars",
+]
+concurrent = ["lobo_replay/concurrent"]
+
+
+[lib]
+name = "lobo"
+crate-type = ["cdylib"]
+
+[lints]
+workspace = true

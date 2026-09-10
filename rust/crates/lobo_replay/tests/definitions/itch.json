@@ -1,0 +1,545 @@
+{
+  "format": {
+    "format": "binary",
+    "length": {
+      "type": "uint",
+      "offset": 0,
+      "size": 2,
+      "byteorder": "big"
+    },
+    "tag": {
+      "type": "uint",
+      "offset": 0,
+      "size": 1,
+      "byteorder": "big"
+    },
+    "key": {
+      "type": "uint",
+      "offset": 1,
+      "size": 2,
+      "byteorder": "big"
+    },
+    "timestamp": {
+      "type": "uint",
+      "offset": 5,
+      "size": 6,
+      "byteorder": "big"
+    },
+    "records": {
+      "83": {
+        "size": 12,
+        "fields": {
+          "event": {
+            "type": "text",
+            "offset": 11,
+            "size": 1
+          }
+        },
+        "actions": [
+          {
+            "action": "when",
+            "condition": {
+              "op": "eq",
+              "args": [
+                {
+                  "op": "field",
+                  "path": [
+                    "event"
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": "S"
+                }
+              ]
+            },
+            "actions": [
+              {
+                "action": "directory_complete"
+              }
+            ],
+            "otherwise": []
+          }
+        ]
+      },
+      "82": {
+        "size": 39,
+        "fields": {
+          "symbol": {
+            "type": "text",
+            "offset": 11,
+            "size": 8
+          }
+        },
+        "actions": [
+          {
+            "action": "register",
+            "symbol": {
+              "op": "field",
+              "path": [
+                "symbol"
+              ]
+            },
+            "price_decimals": {
+              "op": "literal",
+              "value": 4
+            },
+            "quantity_decimals": {
+              "op": "literal",
+              "value": 0
+            },
+            "key": {
+              "op": "variable",
+              "name": "key"
+            },
+            "policy": {
+              "op": "literal",
+              "value": "no_updates"
+            }
+          }
+        ]
+      },
+      "65": {
+        "size": 36,
+        "fields": {
+          "id": {
+            "type": "uint",
+            "offset": 11,
+            "size": 8,
+            "byteorder": "big"
+          },
+          "side": {
+            "type": "text",
+            "offset": 19,
+            "size": 1
+          },
+          "quantity": {
+            "type": "uint",
+            "offset": 20,
+            "size": 4,
+            "byteorder": "big"
+          },
+          "symbol": {
+            "type": "text",
+            "offset": 24,
+            "size": 8
+          },
+          "price": {
+            "type": "uint",
+            "offset": 32,
+            "size": 4,
+            "byteorder": "big"
+          }
+        },
+        "actions": [
+          {
+            "action": "register",
+            "symbol": {
+              "op": "field",
+              "path": [
+                "symbol"
+              ]
+            },
+            "price_decimals": {
+              "op": "literal",
+              "value": 4
+            },
+            "quantity_decimals": {
+              "op": "literal",
+              "value": 0
+            },
+            "key": {
+              "op": "variable",
+              "name": "key"
+            },
+            "policy": {
+              "op": "literal",
+              "value": "no_updates"
+            }
+          },
+          {
+            "action": "add",
+            "id": {
+              "op": "field",
+              "path": [
+                "id"
+              ]
+            },
+            "side": {
+              "op": "map",
+              "args": [
+                {
+                  "op": "field",
+                  "path": [
+                    "side"
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": {
+                    "B": "buy",
+                    "S": "sell"
+                  }
+                },
+                {
+                  "op": "literal",
+                  "value": null
+                }
+              ]
+            },
+            "price": {
+              "op": "field",
+              "path": [
+                "price"
+              ]
+            },
+            "quantity": {
+              "op": "field",
+              "path": [
+                "quantity"
+              ]
+            },
+            "timestamp": {
+              "op": "variable",
+              "name": "clock"
+            }
+          }
+        ]
+      },
+      "70": {
+        "size": 40,
+        "fields": {
+          "id": {
+            "type": "uint",
+            "offset": 11,
+            "size": 8,
+            "byteorder": "big"
+          },
+          "side": {
+            "type": "text",
+            "offset": 19,
+            "size": 1
+          },
+          "quantity": {
+            "type": "uint",
+            "offset": 20,
+            "size": 4,
+            "byteorder": "big"
+          },
+          "symbol": {
+            "type": "text",
+            "offset": 24,
+            "size": 8
+          },
+          "price": {
+            "type": "uint",
+            "offset": 32,
+            "size": 4,
+            "byteorder": "big"
+          }
+        },
+        "actions": [
+          {
+            "action": "register",
+            "symbol": {
+              "op": "field",
+              "path": [
+                "symbol"
+              ]
+            },
+            "price_decimals": {
+              "op": "literal",
+              "value": 4
+            },
+            "quantity_decimals": {
+              "op": "literal",
+              "value": 0
+            },
+            "key": {
+              "op": "variable",
+              "name": "key"
+            },
+            "policy": {
+              "op": "literal",
+              "value": "no_updates"
+            }
+          },
+          {
+            "action": "add",
+            "id": {
+              "op": "field",
+              "path": [
+                "id"
+              ]
+            },
+            "side": {
+              "op": "map",
+              "args": [
+                {
+                  "op": "field",
+                  "path": [
+                    "side"
+                  ]
+                },
+                {
+                  "op": "literal",
+                  "value": {
+                    "B": "buy",
+                    "S": "sell"
+                  }
+                },
+                {
+                  "op": "literal",
+                  "value": null
+                }
+              ]
+            },
+            "price": {
+              "op": "field",
+              "path": [
+                "price"
+              ]
+            },
+            "quantity": {
+              "op": "field",
+              "path": [
+                "quantity"
+              ]
+            },
+            "timestamp": {
+              "op": "variable",
+              "name": "clock"
+            }
+          }
+        ]
+      },
+      "69": {
+        "size": 31,
+        "fields": {
+          "id": {
+            "type": "uint",
+            "offset": 11,
+            "size": 8,
+            "byteorder": "big"
+          },
+          "quantity": {
+            "type": "uint",
+            "offset": 19,
+            "size": 4,
+            "byteorder": "big"
+          }
+        },
+        "actions": [
+          {
+            "action": "execute",
+            "id": {
+              "op": "field",
+              "path": [
+                "id"
+              ]
+            },
+            "quantity": {
+              "op": "field",
+              "path": [
+                "quantity"
+              ]
+            },
+            "price": {
+              "op": "literal",
+              "value": null
+            },
+            "timestamp": {
+              "op": "variable",
+              "name": "clock"
+            }
+          }
+        ]
+      },
+      "67": {
+        "size": 36,
+        "fields": {
+          "id": {
+            "type": "uint",
+            "offset": 11,
+            "size": 8,
+            "byteorder": "big"
+          },
+          "quantity": {
+            "type": "uint",
+            "offset": 19,
+            "size": 4,
+            "byteorder": "big"
+          },
+          "price": {
+            "type": "uint",
+            "offset": 32,
+            "size": 4,
+            "byteorder": "big"
+          }
+        },
+        "actions": [
+          {
+            "action": "execute",
+            "id": {
+              "op": "field",
+              "path": [
+                "id"
+              ]
+            },
+            "quantity": {
+              "op": "field",
+              "path": [
+                "quantity"
+              ]
+            },
+            "price": {
+              "op": "field",
+              "path": [
+                "price"
+              ]
+            },
+            "timestamp": {
+              "op": "variable",
+              "name": "clock"
+            }
+          }
+        ]
+      },
+      "88": {
+        "size": 23,
+        "fields": {
+          "id": {
+            "type": "uint",
+            "offset": 11,
+            "size": 8,
+            "byteorder": "big"
+          },
+          "quantity": {
+            "type": "uint",
+            "offset": 19,
+            "size": 4,
+            "byteorder": "big"
+          }
+        },
+        "actions": [
+          {
+            "action": "cancel",
+            "id": {
+              "op": "field",
+              "path": [
+                "id"
+              ]
+            },
+            "quantity": {
+              "op": "field",
+              "path": [
+                "quantity"
+              ]
+            },
+            "timestamp": {
+              "op": "variable",
+              "name": "clock"
+            }
+          }
+        ]
+      },
+      "68": {
+        "size": 19,
+        "fields": {
+          "id": {
+            "type": "uint",
+            "offset": 11,
+            "size": 8,
+            "byteorder": "big"
+          }
+        },
+        "actions": [
+          {
+            "action": "remove",
+            "id": {
+              "op": "field",
+              "path": [
+                "id"
+              ]
+            },
+            "timestamp": {
+              "op": "variable",
+              "name": "clock"
+            }
+          }
+        ]
+      },
+      "85": {
+        "size": 35,
+        "fields": {
+          "id": {
+            "type": "uint",
+            "offset": 11,
+            "size": 8,
+            "byteorder": "big"
+          },
+          "new_id": {
+            "type": "uint",
+            "offset": 19,
+            "size": 8,
+            "byteorder": "big"
+          },
+          "quantity": {
+            "type": "uint",
+            "offset": 27,
+            "size": 4,
+            "byteorder": "big"
+          },
+          "price": {
+            "type": "uint",
+            "offset": 31,
+            "size": 4,
+            "byteorder": "big"
+          }
+        },
+        "actions": [
+          {
+            "action": "replace",
+            "id": {
+              "op": "field",
+              "path": [
+                "id"
+              ]
+            },
+            "new_id": {
+              "op": "field",
+              "path": [
+                "new_id"
+              ]
+            },
+            "price": {
+              "op": "field",
+              "path": [
+                "price"
+              ]
+            },
+            "quantity": {
+              "op": "field",
+              "path": [
+                "quantity"
+              ]
+            },
+            "timestamp": {
+              "op": "variable",
+              "name": "clock"
+            }
+          }
+        ]
+      }
+    },
+    "max_record_size": 512
+  },
+  "connect": [],
+  "subscriptions": [],
+  "bootstrap": [],
+  "keepalive": [],
+  "simulation_note": null,
+  "reconcile_window_ns": 250000000,
+  "reconcile_capacity": 4096,
+  "symbols_per_connection": 0
+}
