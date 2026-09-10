@@ -42,14 +42,18 @@ or try the [standalone order API example](python/examples/order_api/README.md).
 
 ## Build your own adapters
 
-Browse the [Python example adapters](python/examples/README.md) and [adapter reference](rust/crates/lobo_replay/src/custom/README.md),
-or install the [agent skill](agents/README.md) to have an agent build one for you:
+Browse the [Python example adapters](python/examples/README.md) and [adapter reference](rust/crates/lobo_replay/src/custom/README.md). The examples cover Nasdaq ITCH, Kraken, Bitfinex, Polymarket, and LOBO's order feed.
+You can also use the [agent skill](agents/README.md) to have an agent build one for you:
 
 ```sh
 npx skills add iamorlando/loblib --skill lobo-adapter --copy
 ```
-
-The examples cover Nasdaq ITCH, Kraken, Bitfinex, Polymarket, and LOBO's order feed.
+Then you can try prompt like this:
+```text
+build me the cme adapter for lobo, using the lobo adapter skill. then use a sample file
+    https://cmegroupclientsite.atlassian.net/wiki/spaces/EPICSANDBOX/pages/457223111/MBO+FIX#MBOFIX-SampleFiles to show one book in the
+  app
+  ```
 
 ## Use LOBO in Rust
 
@@ -58,12 +62,6 @@ Add LOBO to your Rust project directly from this repository:
 ```sh
 cargo add lobo --git https://github.com/iamorlando/loblib.git
 ```
-Then you can try prompt like this:
-```text
-uild me the cme adapter for lobo, using the lobo adapter skill. then use a sample file
-    https://cmegroupclientsite.atlassian.net/wiki/spaces/EPICSANDBOX/pages/457223111/MBO+FIX#MBOFIX-SampleFiles to show one book in the
-  app
-  ```
 
 ## LOBO Is Highly Configurable
 Lobo relies heavily on static dispatch, deferring nearly all configuration level control flow to compile-time resolution of generic types. To achieve this LOBO's order state is held in a single [generational slotted arena](rust/crates/lobo_storage/src/arena/arenav1.rs#L71), while all data structures beyond it operate only on [arena keys](rust/crates/lobo_storage/src/arena/arenav1.rs#L37). This enables full configurability of the [sorting](rust/crates/lobo_storage/src/price_sorting.rs#L244) and [storage algorithms](rust/crates/lobo_storage/src/price_level/mod.rs), allowing LOBO to implement the optimal ones for the given use case.
