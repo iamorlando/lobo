@@ -284,8 +284,14 @@ impl Plan {
             .max()
             .unwrap_or(0);
         for (&tag, record) in &spec.records {
+            if record.variable() {
+                return Err(
+                    "Variable binary records require incremental execution; use start() and wait()"
+                        .into(),
+                );
+            }
             let mut mapping = Mapping {
-                size: record.size,
+                size: record.size.expect("fixed record"),
                 kind: 0,
                 id: Operand::literal(0),
                 quantity: Operand::literal(0),
@@ -495,6 +501,7 @@ pub(super) fn metadata(action: &Action) -> bool {
         Operation::When {
             actions, otherwise, ..
         } => actions.iter().chain(otherwise).all(metadata),
+        Operation::ForEach { actions, .. } => actions.iter().all(metadata),
         _ => false,
     }
 }

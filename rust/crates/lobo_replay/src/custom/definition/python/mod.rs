@@ -102,6 +102,7 @@ fn specification_value(value: &Bound<'_, PyAny>) -> PyResult<Value> {
         schema::Message,
         schema::BinaryField,
         schema::Record,
+        schema::Group,
         schema::Bootstrap,
         schema::Definition
     );
@@ -167,7 +168,7 @@ pub fn specification(value: &Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
 #[pyo3(name = "models", submodule, module = "lobo.replay.adapters")]
 pub mod models {
     #[pymodule_export]
-    use super::super::schema::{Action, BinaryField, Bootstrap, Checksum, Message, Record};
+    use super::super::schema::{Action, BinaryField, Bootstrap, Checksum, Group, Message, Record};
     #[pymodule_export]
     use super::actions::{
         Add, Book, Cancel, Directory, DirectoryComplete, Execute, Fail, Level, Modify,

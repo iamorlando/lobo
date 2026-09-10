@@ -260,13 +260,15 @@ impl Protocol for ObservedProtocol {
                 return Err("Observer sequence gap; reconnect for a snapshot".into());
             }
         } else {
-            if let Some(protocol) = value.get("protocol") {
-                let definition = Definition::parse(&protocol.to_string())?;
-                self.inner = DefinedProtocol::new(
-                    Arc::new(definition),
-                    self.descriptor.clone(),
-                    &state.selected,
-                )?;
+            let definition = match value.get("protocol") {
+                Some(protocol) => Arc::new(Definition::parse(&protocol.to_string())?),
+                None => self.inner.definition.clone(),
+            };
+            self.inner =
+                DefinedProtocol::new(definition, self.descriptor.clone(), &state.selected)?;
+            if self.descriptor.mode == super::FeedMode::Replay {
+                let aggregation = state.volume_bars().borrow().aggregation();
+                state.set_bar_aggregation(aggregation);
             }
             state.context.books.clear();
             state.simulation = None;
@@ -309,7 +311,10 @@ impl Protocol for ObservedProtocol {
         state.consumed = value["consumed"].as_u64().ok_or("Missing byte count")?;
         state.checksum_checks = value["checksum_checks"].as_u64().unwrap_or(0);
         state.checksum_failures = value["checksum_failures"].as_u64().unwrap_or(0);
-        state.warming = !state.synchronized(&state.selected);
+        // A partial recorded book is still displayable; synchronization remains
+        // an independent property and must never be invented by playback.
+        state.warming =
+            self.descriptor.mode == super::FeedMode::Live && !state.synchronized(&state.selected);
         state.complete = value["complete"].as_bool().unwrap_or(false);
         state.commit();
         Ok(())
@@ -320,7 +325,15 @@ impl Protocol for ObservedProtocol {
         elapsed: u64,
         budget: usize,
     ) -> Result<(), String> {
-        self.inner.advance(state, elapsed, budget)
+        if self.descriptor.mode == super::FeedMode::Replay {
+            // The host owns historical time, including pauses and EOF.
+            let elapsed = state
+                .clock_ns
+                .saturating_sub(state.start_ns.unwrap_or(state.clock_ns));
+            self.inner.advance(state, elapsed, budget)
+        } else {
+            self.inner.advance(state, elapsed, budget)
+        }
     }
     fn disconnected(&mut self, state: &mut FeedState) {
         self.sequence = None;
@@ -331,22 +344,44 @@ impl Protocol for ObservedProtocol {
 #[cfg(feature = "native")]
 pub mod channel {
     use super::*;
-    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
     use tokio::sync::broadcast;
     #[derive(Clone)]
     pub struct Publisher {
         pub events: broadcast::Sender<Arc<Value>>,
         sequence: Arc<AtomicU64>,
+        suspended: Arc<AtomicBool>,
     }
     impl Publisher {
         pub fn new(capacity: usize) -> Self {
             Self {
                 events: broadcast::channel(capacity).0,
                 sequence: Arc::new(AtomicU64::new(0)),
+                suspended: Arc::new(AtomicBool::new(false)),
             }
         }
         pub fn sequence(&self) -> u64 {
             self.sequence.load(Ordering::Relaxed)
+        }
+        pub fn suspend(&self) {
+            self.suspended.store(true, Ordering::Relaxed);
+        }
+        pub fn resume_snapshot(
+            &self,
+            adapter: &dyn super::super::MarketDataAdapter,
+        ) -> Result<(), String> {
+            let sequence = self.sequence.fetch_add(1, Ordering::Relaxed) + 1;
+            let value = snapshot(adapter, sequence)?;
+            self.suspended.store(false, Ordering::Relaxed);
+            let _ = self.events.send(Arc::new(value));
+            Ok(())
+        }
+        pub fn publish_clock(&self, state: &FeedState) {
+            if self.suspended.load(Ordering::Relaxed) {
+                return;
+            }
+            let sequence = self.sequence.fetch_add(1, Ordering::Relaxed) + 1;
+            let _ = self.events.send(Arc::new(json!({"type":"update","sequence":sequence,"actions":[],"clock_ns":state.clock_ns,"start_ns":state.start_ns,"messages":state.messages,"consumed":state.consumed,"checksum_checks":state.checksum_checks,"checksum_failures":state.checksum_failures,"complete":state.complete})));
         }
         pub fn sink(&self) -> Channel {
             Channel {
@@ -372,6 +407,10 @@ pub mod channel {
             if let Some(e) = self.error.take() {
                 self.reject();
                 return Err(e);
+            }
+            if self.publisher.suspended.load(Ordering::Relaxed) {
+                self.pending.clear();
+                return Ok(());
             }
             let sequence = self.publisher.sequence.fetch_add(1, Ordering::Relaxed) + 1;
             let event = json!({"type":"update","sequence":sequence,"actions":std::mem::take(&mut self.pending),"clock_ns":state.clock_ns,"start_ns":state.start_ns,"messages":state.messages,"consumed":state.consumed,"checksum_checks":state.checksum_checks,"checksum_failures":state.checksum_failures,"complete":state.complete});

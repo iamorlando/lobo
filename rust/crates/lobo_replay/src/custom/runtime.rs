@@ -1,5 +1,7 @@
 //! Source workers, lifecycle controls, and serialized book access.
 use super::{FeedMode, MarketDataAdapter};
+mod playback;
+pub use playback::{PlaybackCommand, PlaybackStatus};
 use std::{
     cell::Cell,
     io::{BufRead, BufReader, Read},
@@ -11,6 +13,10 @@ use std::{
 type Query = Box<dyn FnOnce(&mut dyn MarketDataAdapter) + Send>;
 pub(crate) enum Control {
     Query(Query),
+    Playback(
+        PlaybackCommand,
+        mpsc::SyncSender<Result<PlaybackStatus, String>>,
+    ),
     Stop,
 }
 
@@ -56,6 +62,9 @@ pub trait Driver: Send + 'static {
 pub struct ControlReceiver {
     pub(crate) rx: mpsc::Receiver<Control>,
     stopped: Cell<bool>,
+    playback: std::cell::RefCell<Option<playback::Playback>>,
+    rewind: Cell<bool>,
+    probe: std::cell::RefCell<Option<Box<dyn MarketDataAdapter>>>,
 }
 impl ControlReceiver {
     /// Service controls between input batches, never inside a book mutation.
@@ -66,16 +75,19 @@ impl ControlReceiver {
         loop {
             match self.rx.try_recv() {
                 Ok(Control::Query(query)) => query(adapter),
+                Ok(Control::Playback(command, reply)) => {
+                    self.control_playback(adapter, command, reply)
+                }
                 Ok(Control::Stop) | Err(mpsc::TryRecvError::Disconnected) => {
                     self.stopped.set(true);
                     return false;
                 }
-                Err(mpsc::TryRecvError::Empty) => return true,
+                Err(mpsc::TryRecvError::Empty) => return !self.rewind.get(),
             }
         }
     }
     pub(crate) fn is_stopped(&self) -> bool {
-        self.stopped.get()
+        self.stopped.get() || self.rewind.get()
     }
 }
 
@@ -92,6 +104,14 @@ pub struct SessionHandle {
     tx: mpsc::Sender<Control>,
 }
 impl SessionHandle {
+    pub fn playback(&self, command: PlaybackCommand) -> Result<PlaybackStatus, String> {
+        let (tx, rx) = mpsc::sync_channel(1);
+        self.tx
+            .send(Control::Playback(command, tx))
+            .map_err(|_| "Adapter is closed")?;
+        rx.recv()
+            .map_err(|_| "Adapter stopped during a playback request")?
+    }
     pub fn with<R: Send + 'static>(
         &self,
         query: impl FnOnce(&mut dyn MarketDataAdapter) -> Result<R, String> + Send + 'static,
@@ -143,6 +163,9 @@ impl Session {
                 let controls = ControlReceiver {
                     rx,
                     stopped: Cell::new(false),
+                    playback: Default::default(),
+                    rewind: Cell::new(false),
+                    probe: Default::default(),
                 };
                 let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
                     source.run(adapter.as_mut(), &controls)
@@ -155,6 +178,9 @@ impl Session {
                 while !controls.stopped.get() {
                     match controls.rx.recv() {
                         Ok(Control::Query(query)) => query(adapter.as_mut()),
+                        Ok(Control::Playback(_, reply)) => {
+                            let _ = reply.send(Err("This session has no playback controls".into()));
+                        }
                         _ => break,
                     }
                 }
@@ -230,6 +256,9 @@ pub(super) fn advance(
     adapter: &mut dyn MarketDataAdapter,
     controls: &ControlReceiver,
 ) -> Result<bool, String> {
+    if controls.playback.borrow().is_some() {
+        return controls.advance_replay(adapter);
+    }
     if adapter.info().mode != FeedMode::Replay {
         return Ok(controls.poll(adapter));
     }
@@ -298,11 +327,13 @@ impl Driver for Source {
                 let mut reader = reader(&path)?;
                 let mut buffer = vec![0; chunk_size];
                 loop {
-                    if !controls.poll(adapter) {
+                    if !controls.ready(adapter)? {
                         return Ok(());
                     }
                     let count = reader.read(&mut buffer).map_err(|e| e.to_string())?;
-                    adapter.receive(&buffer[..count], count == 0)?;
+                    if !controls.receive(adapter, &buffer[..count], count == 0)? {
+                        break;
+                    }
                     if !advance(adapter, controls)? || count == 0 {
                         break;
                     }
@@ -311,12 +342,21 @@ impl Driver for Source {
             Source::JsonLines { path, bootstrap } => {
                 let mut reader = BufReader::new(reader(&path)?);
                 let mut bytes = Vec::new();
+                if !controls.ready(adapter)? {
+                    return Ok(());
+                }
                 for (id, bytes) in bootstrap {
+                    if let Some(probe) = controls.probe.borrow_mut().as_mut() {
+                        probe.bootstrap(&id, &bytes)?;
+                    }
                     adapter.bootstrap(&id, &bytes)?;
+                }
+                if let Some(probe) = controls.probe.borrow_mut().as_mut() {
+                    probe.connected()?;
                 }
                 adapter.connected()?;
                 loop {
-                    if !controls.poll(adapter) {
+                    if !controls.ready(adapter)? {
                         return Ok(());
                     }
                     bytes.clear();
@@ -330,28 +370,45 @@ impl Driver for Source {
                     if bytes.iter().all(u8::is_ascii_whitespace) {
                         continue;
                     }
-                    adapter.receive(&bytes, false)?;
+                    if !controls.receive(adapter, &bytes, false)? {
+                        return Ok(());
+                    }
                     if !advance(adapter, controls)? {
                         break;
                     }
                 }
+                if adapter.info().mode == FeedMode::Replay && !controls.is_stopped() {
+                    controls.receive(adapter, &[], true)?;
+                    advance(adapter, controls)?;
+                }
             }
             Source::Packets { packets, bootstrap } => {
+                if !controls.ready(adapter)? {
+                    return Ok(());
+                }
                 for (id, bytes) in bootstrap {
+                    if let Some(probe) = controls.probe.borrow_mut().as_mut() {
+                        probe.bootstrap(&id, &bytes)?;
+                    }
                     adapter.bootstrap(&id, &bytes)?;
+                }
+                if let Some(probe) = controls.probe.borrow_mut().as_mut() {
+                    probe.connected()?;
                 }
                 adapter.connected()?;
                 for bytes in packets {
-                    if !controls.poll(adapter) {
+                    if !controls.ready(adapter)? {
                         return Ok(());
                     }
-                    adapter.receive(&bytes, false)?;
+                    if !controls.receive(adapter, &bytes, false)? {
+                        return Ok(());
+                    }
                     if !advance(adapter, controls)? {
                         return Ok(());
                     }
                 }
                 if adapter.info().mode == FeedMode::Replay {
-                    adapter.receive(&[], true)?;
+                    controls.receive(adapter, &[], true)?;
                     advance(adapter, controls)?;
                 }
             }

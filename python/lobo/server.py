@@ -26,11 +26,18 @@ def server_context(
     web_root: str | Path | None = None,
     sinks: list[GpuSink] | None = None,
     adapters: Sequence[CustomAdapter] | None = None,
+    replay_paused: bool = True,
+    replay_speed: float = 1.0,
 ) -> ServerContext:
     """Launch the order API and expose books created inside the ``with`` block.
 
     Pass ``adapters=[adapter]`` to start and expose custom adapters for the
     lifetime of this context. Attach adapters before calling their ``start()``.
+    Recorded adapters start paused by default. ``replay_speed`` sets their initial
+    timestamp multiplier. Control them through ``adapter.play()``, ``pause()``,
+    ``set_speed()``, ``restart()``, and ``seek(timestamp_ns)`` or the terminal.
+    ``adapter.playback`` reports the shared state; seek uses absolute source
+    nanoseconds and returns after reconstructing the books from the beginning.
 
     Prices and quantities remain integer atoms throughout the API.
     Precision controls their displayed units in the terminal. Pass ``port=0``
@@ -51,4 +58,6 @@ def server_context(
         queue_capacity=queue_capacity,
         sinks=sinks,
         adapters=adapters,
+        replay_paused=replay_paused,
+        replay_speed=replay_speed,
     )

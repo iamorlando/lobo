@@ -126,12 +126,14 @@ pub(crate) fn prepare<O: EventSink>(
             switch.emit(&mut e.builder, tag, done);
             for (block, record, actions) in cases {
                 e.builder.switch_to_block(block);
-                let size = e.word(record.size as u64);
-                e.call("packet_binary_size", &[e.frame, size], true);
-                e.owner.wire_fields = Some(record.fields.clone());
                 e.item = e.root;
-                if whole_record(&serde_json::to_value(&actions).map_err(|e| e.to_string())?) {
-                    e.binary_record(record)?;
+                if !record.variable() {
+                    let size = e.word(record.size.expect("fixed record") as u64);
+                    e.call("packet_binary_size", &[e.frame, size], true);
+                    e.owner.wire_fields = Some(record.fields.clone());
+                    if whole_record(&serde_json::to_value(&actions).map_err(|e| e.to_string())?) {
+                        e.binary_record(record)?;
+                    }
                 }
                 e.call("packet_binary_start", &[e.frame], true);
                 e.actions(&actions, false, false)?;
@@ -144,95 +146,98 @@ pub(crate) fn prepare<O: EventSink>(
     } else {
         None
     };
-    let packet =
-        builder.function(layout.root, |e| {
-            match &definition.format {
-                Format::Json { messages } => {
-                    e.decode_root(layout.root)?;
-                    e.call("packet_packet_start", &[e.frame], true);
-                    for message in messages {
-                        let yes = e.condition(&message.condition)?;
-                        e.branch(
-                            yes,
-                            |e| e.actions(&message.actions, false, false),
-                            |_| Ok(()),
-                        )?;
-                    }
-                    e.call("packet_packet_finish", &[e.frame], true);
+    let packet = builder.function(layout.root, |e| {
+        match &definition.format {
+            Format::Json { messages } => {
+                e.decode_root(layout.root)?;
+                e.call("packet_packet_start", &[e.frame], true);
+                for message in messages {
+                    let yes = e.condition(&message.condition)?;
+                    e.branch(
+                        yes,
+                        |e| e.actions(&message.actions, false, false),
+                        |_| Ok(()),
+                    )?;
                 }
-                Format::Binary(spec) => {
-                    let tag = e.load(e.frame, offset_of!(Frame, header) + offset_of!(Header, tag));
-                    let done = e.builder.create_block();
-                    let mut switch = cranelift_frontend::Switch::new();
-                    let mut cases = Vec::new();
-                    let plan =
-                        crate::custom::definition::compiled::Plan::new(Arc::new(spec.clone())).ok();
-                    for (tag, record) in &spec.records {
-                        let block = e.builder.create_block();
-                        switch.set_entry(*tag as u128, block);
-                        cases.push((
-                            block,
-                            record,
-                            plan.as_ref().is_some_and(|plan| plan.streamable(*tag)),
-                        ));
-                    }
-                    switch.emit(&mut e.builder, tag, done);
-                    for (block, record, fast) in cases {
-                        e.builder.switch_to_block(block);
-                        let size = e.word(record.size as u64);
+                e.call("packet_packet_finish", &[e.frame], true);
+            }
+            Format::Binary(spec) => {
+                let tag = e.load(e.frame, offset_of!(Frame, header) + offset_of!(Header, tag));
+                let done = e.builder.create_block();
+                let mut switch = cranelift_frontend::Switch::new();
+                let mut cases = Vec::new();
+                let plan =
+                    crate::custom::definition::compiled::Plan::new(Arc::new(spec.clone())).ok();
+                for (tag, record) in &spec.records {
+                    let block = e.builder.create_block();
+                    switch.set_entry(*tag as u128, block);
+                    cases.push((
+                        block,
+                        record,
+                        plan.as_ref().is_some_and(|plan| plan.streamable(*tag)),
+                    ));
+                }
+                switch.emit(&mut e.builder, tag, done);
+                for (block, record, fast) in cases {
+                    e.builder.switch_to_block(block);
+                    e.item = e.root;
+                    if !record.variable() {
+                        let size = e.word(record.size.expect("fixed record") as u64);
                         e.call("packet_binary_size", &[e.frame, size], true);
                         e.owner.wire_fields = Some(record.fields.clone());
-                        e.item = e.root;
                         if whole_record(
                             &serde_json::to_value(&record.actions).map_err(|e| e.to_string())?,
                         ) {
                             e.binary_record(record)?;
                         }
-                        if fast {
-                            let known = e.call("packet_binary_fast_start", &[e.frame], false);
-                            let metadata = record
-                                .actions
-                                .iter()
-                                .filter(|a| crate::custom::definition::compiled::metadata(a))
-                                .cloned()
-                                .collect::<Vec<_>>();
-                            e.branch(
-                                known,
-                                |_| Ok(()),
-                                |e| {
-                                    e.call("packet_binary_start", &[e.frame], true);
-                                    e.actions(&metadata, false, false)?;
-                                    e.call("packet_binary_fast_start", &[e.frame], false);
-                                    Ok(())
-                                },
-                            )?;
-                            let entered = e.call("packet_binary_order", &[e.frame], true);
-                            e.owner.fast_binary = true;
-                            e.branch(
-                                entered,
-                                |e| {
-                                    for action in record.actions.iter().filter(|a| {
-                                        !crate::custom::definition::compiled::metadata(a)
-                                    }) {
-                                        e.order(&action.operation, false)?;
-                                    }
-                                    Ok(())
-                                },
-                                |_| Ok(()),
-                            )?;
-                            e.owner.fast_binary = false;
-                        } else {
-                            e.call("packet_binary_start", &[e.frame], true);
-                            e.actions(&record.actions, false, false)?;
-                        }
-                        e.owner.wire_fields = None;
-                        e.builder.ins().jump(done, &[]);
                     }
-                    e.builder.switch_to_block(done);
+                    if fast {
+                        let known = e.call("packet_binary_fast_start", &[e.frame], false);
+                        let metadata = record
+                            .actions
+                            .iter()
+                            .filter(|a| crate::custom::definition::compiled::metadata(a))
+                            .cloned()
+                            .collect::<Vec<_>>();
+                        e.branch(
+                            known,
+                            |_| Ok(()),
+                            |e| {
+                                e.call("packet_binary_start", &[e.frame], true);
+                                e.actions(&metadata, false, false)?;
+                                e.call("packet_binary_fast_start", &[e.frame], false);
+                                Ok(())
+                            },
+                        )?;
+                        let entered = e.call("packet_binary_order", &[e.frame], true);
+                        e.owner.fast_binary = true;
+                        e.branch(
+                            entered,
+                            |e| {
+                                for action in record
+                                    .actions
+                                    .iter()
+                                    .filter(|a| !crate::custom::definition::compiled::metadata(a))
+                                {
+                                    e.order(&action.operation, false)?;
+                                }
+                                Ok(())
+                            },
+                            |_| Ok(()),
+                        )?;
+                        e.owner.fast_binary = false;
+                    } else {
+                        e.call("packet_binary_start", &[e.frame], true);
+                        e.actions(&record.actions, false, false)?;
+                    }
+                    e.owner.wire_fields = None;
+                    e.builder.ins().jump(done, &[]);
                 }
+                e.builder.switch_to_block(done);
             }
-            Ok(())
-        })?;
+        }
+        Ok(())
+    })?;
     let mut sequences = BTreeMap::new();
     for actions in [
         &definition.connect,
@@ -321,8 +326,30 @@ impl Program {
         frame.missing = self.decoder.missing.record;
         frame.item = frame.missing;
         frame.root = frame.missing;
-        unsafe {
-            (self.code.entries[entry])((&mut *frame as *mut Frame).cast());
+        let decoded = (|| {
+            if entry == self.packet || self.directory == Some(entry) {
+                if let Format::Binary(spec) = &self.definition.format {
+                    if let Some(record) = spec.records.get(&header.tag).filter(|r| r.variable()) {
+                        let value = record.decode(bytes, spec.minimum_header())?;
+                        frame.root = self.layout.project(
+                            &value,
+                            self.layout.root,
+                            &mut frame.temporary,
+                            frame.missing,
+                        )?;
+                        frame.item = frame.root;
+                    }
+                }
+            }
+            Ok::<_, String>(())
+        })();
+        match decoded {
+            Ok(()) => unsafe {
+                (self.code.entries[entry])((&mut *frame as *mut Frame).cast());
+            },
+            Err(error) => {
+                frame.fail(error);
+            }
         }
         let result = match frame.error.take() {
             Some(error) => {

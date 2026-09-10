@@ -92,7 +92,57 @@ change the original declaration.
 - `Field(...)` reads the current record or `ForEach` item. `Root(...)` reads the enclosing message. Paths support object keys and array indices, including negative indices.
 - `Variable(...)` reads a value bound with `Let`. The session also provides `symbol`, `connection`, `clock`, `price_decimals`, and `quantity_decimals`.
 - Expressions support exact numeric comparisons, decimal scaling, timestamps, mapping, conditional choice, and connection-local table lookup. Use `&` and `|` to combine conditions.
-- `Json(Message(condition, *actions), ...)` maps JSON packets. `Binary(...)` declares a length prefix, record tag, routing key, timestamp, and fixed record layouts using `Record`, `UInt`, and `Text`.
+- `Json(Message(condition, *actions), ...)` maps JSON packets. `Binary(...)` declares a length prefix, record tag, routing key, timestamp, and record layouts using `Record`, `UInt`, `Text`, and `Group`. Rust docstrings on these declarations supply Python `help()`, signatures, executable examples, and generated type stubs.
+
+### Binary framing and variable layouts
+
+`Binary(length_includes_prefix=True, ...)` accepts wire lengths that count their
+own prefix. The default remains payload-only length. For a two-byte prefix with
+value 10, inclusive framing reads 8 payload bytes; ordinary framing reads 10.
+All record offsets exclude the prefix in both cases. `max_record_size` bounds the
+payload, not the inclusive frame. Zero payloads, truncation, and excessive lengths
+are errors. Source chunks may split prefixes or records and may contain many frames.
+
+`Record(size=N, ...)` retains exact-size validation. `Record(size=None, ...)`
+declares a variable payload. Optional `block_length=UInt(...)` reads a transmitted
+root block length; its end is `block_offset + block_length`. Root fields still use
+payload-relative offsets. This allows unknown fixed-block extensions to be skipped
+before decoding the first group. Without a transmitted length, groups follow the
+common binary header and declared root fields, or use an explicit group offset.
+
+`Group(name, header_size=..., count=UInt(...), block_length=UInt(...), fields=...)`
+decodes an array of entry objects. Dimension-field offsets are relative to the
+group header; entry-field offsets are relative to each entry. Groups are visited
+in declaration order. Nested `groups` follow each entry's transmitted fixed block,
+and the next entry follows those nested groups. `offset` and power-of-two
+`alignment` are relative to the containing record or entry. Each group has a
+`max_count` bound; nesting is limited to 16 levels and total decoded entries to
+65535 per record. Every field and group is checked before any action runs.
+Undeclared trailing bytes require `Record(size=None, allow_trailing=True, ...)`.
+
+`ForEach(Field("orders"), ...)` iterates entries in Rust. Within it, `Field("id")`
+reads the current entry and `Root("version")` reads the message root. Explicit
+`Book(symbol, ...)` actions route each entry independently of the default header
+key. Existing table operations can retain definitions or correlate reference IDs
+between groups. The native decoder feeds compiled action slots without calling
+Python or serializing the record into JSON text. The fixed-layout path retains its
+compiled byte loads.
+
+Construct binary adapters with `mode=lm.FeedMode.Replay`. Use
+`CustomAdapter.start()` followed by `wait()` for variable layouts, including
+file and gzip sources. `run()` and tabular extraction currently require fixed
+scalar layouts and report this restriction explicitly. Declaration errors are
+`ValueError`; source/decode failures are reported as `RuntimeError` by `wait()`
+(file directory scanning may detect an error during construction).
+
+These declarations describe a framed message stream. They do not identify or
+remove capture-file, UDP/IP, or outer packet headers; `Source.packets` boundaries
+are byte-chunk boundaries for binary input. A template tag chooses one layout;
+schema/version checks can guard its actions, but do not select different layouts
+for the same tag. Nor does group decoding introduce exchange-supplied queue
+priority, packet continuity/recovery, or event-wide publication transactions.
+Those are separate capabilities, and the variable-layout tests do not establish
+conformance to any particular venue feed.
 - `Add`, `Execute`, `Cancel`, `Remove`, `Modify`, and `Replace` use L3 order operations. `Upsert` maps absolute order updates, including deletion when its price is `None`.
 - `Level` sets an L2 level's absolute quantity. `Trade` reports executions for bars and live simulation reconciliation. `OrderCommand` accepts the library's order API schema, including fills and icebergs.
 

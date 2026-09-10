@@ -6,10 +6,9 @@ Combine these expressions with the book operations in models when defining
 a Protocol.
 """
 
+from .models import Action
 from collections.abc import Iterable
 from typing import Any, final
-
-from .models import Action
 
 @final
 class CheckSequence(Action):

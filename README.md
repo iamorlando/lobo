@@ -14,6 +14,7 @@ pip install lobopy
   - [Get started](#get-started)
   - [Build your own adapters](#build-your-own-adapters)
   - [Use LOBO in Rust](#use-lobo-in-rust)
+  - [LOBO Is Highly Configurable](#lobo-is-highly-configurable)
   - [Further reading](#further-reading)
 
 
@@ -22,12 +23,11 @@ LOBO is a high-performance order book library built for fast replay. Written in 
 it exposes Python APIs to create and serve books through a [REST order API](rust/crates/lobo_server/README.md#order-api)
 and an interactive [WebGPU terminal](web/README.md).
 
-Define your own market data adapters in Python; LOBO JIT-compiles their declarations
-into native code. Python-defined adapters are [benchmarked against their native counterparts](rust/crates/lobo_replay/benches/custom_adapters.rs).
+There are many fast ordebooks out there, the key reason you might consider using LOBO is when you need to adapt a new market data source. LOBO offers an expressive Python API to fully specify and map almost any market data source from its binary or JSON representation. The real beauty of LOBO is that it then JIT compiles your adapter into a zero-allocation parser streaming at native Rust/C/C++ speeds.
 
 [![LOBO demo: AAPL liquidity heatmap, live depth, and replay controls](docs/assets/lobo-demo.png)](https://lobo-demo.vercel.app)
 
-_Explore the [live demo](https://lobo-demo.vercel.app) — click the screenshot to open it._
+_Explore the [live demo](https://lobo-demo.vercel.app)._
 
 ## Get started
 
@@ -64,6 +64,13 @@ uild me the cme adapter for lobo, using the lobo adapter skill. then use a sampl
     https://cmegroupclientsite.atlassian.net/wiki/spaces/EPICSANDBOX/pages/457223111/MBO+FIX#MBOFIX-SampleFiles to show one book in the
   app
   ```
+
+## LOBO Is Highly Configurable
+Lobo relies heavily on static dispatch, deferring nearly all configuration level control flow to compile-time resolution of generic types. To achieve this LOBO's order state is held in a single [generational slotted arena](rust/crates/lobo_storage/src/arena/arenav1.rs#L71), while all data structures beyond it operate only on [arena keys](rust/crates/lobo_storage/src/arena/arenav1.rs#L37). This enables full configurability of the [sorting](rust/crates/lobo_storage/src/price_sorting.rs#L244) and [storage algorithms](rust/crates/lobo_storage/src/price_level/mod.rs), allowing LOBO to implement the optimal ones for the given use case.
+LOBO's state updates and sorting mechanics are configured via [policies](rust/crates/lobo_books/src/price_time_priority/mod.rs#L38) that resolve at compile time to specialized concrete types. The benefits of this also extend to Python. Python users simply select the configuration of the book in the [book's init](rust/crates/lobo_books/src/price_time_priority/python/book.rs#L158), this gets mapped by Rust to the [fully concrete typed implementation](rust/crates/lobo_books/src/price_time_priority/python/policies.rs#L7). A user [macro](rust/crates/lobo_storage/src/policies/matrix.rs#L4) facilitates this, enabling all combinatorial possibilities to exist in Python.
+
+
+
 ## Further reading
 
 | Guide                                                  | What you'll find                                                     |

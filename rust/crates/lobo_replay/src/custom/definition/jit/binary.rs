@@ -31,6 +31,7 @@ pub(crate) struct Decoder {
     pub prefix_size: usize,
     minimum: usize,
     maximum: usize,
+    inclusive: bool,
     _memory: Mutex<ModuleMemory>,
 }
 /// Emit a known-width load; width, byte order and location are compile-time inputs.
@@ -254,6 +255,7 @@ impl Decoder {
                 .max()
                 .unwrap_or(0),
             maximum: spec.max_record_size,
+            inclusive: spec.length_includes_prefix,
             _memory: Mutex::new(module),
         };
         Ok(Arc::new(result))
@@ -262,11 +264,13 @@ impl Decoder {
         if bytes.len() < self.prefix_size {
             return Err("Truncated record prefix".into());
         }
-        let n = unsafe { (self.prefix)(bytes.as_ptr()) } as usize;
-        if n == 0 || n > self.maximum {
-            return Err("Invalid record length".into());
-        }
-        Ok(n)
+        let n = unsafe { (self.prefix)(bytes.as_ptr()) };
+        crate::custom::definition::binary_layout::payload_length(
+            n,
+            self.prefix_size,
+            self.inclusive,
+            self.maximum,
+        )
     }
     pub(crate) fn header(&self, bytes: &[u8]) -> Result<Header, String> {
         if bytes.len() < self.minimum {

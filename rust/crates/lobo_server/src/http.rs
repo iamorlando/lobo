@@ -25,6 +25,10 @@ pub fn router(registry: Arc<Registry>, web_root: PathBuf) -> Router {
         .route("/api/adapters/{index}/feed", get(adapter_feed))
         .route("/api/adapters/{index}/orders", post(adapter_command))
         .route(
+            "/api/adapters/{index}/playback",
+            get(adapter_playback).post(adapter_playback_command),
+        )
+        .route(
             "/api/adapters/{index}/subscriptions",
             post(adapter_subscribe),
         )
@@ -46,6 +50,15 @@ async fn configuration(
             info["id"] = format!("custom-{index}").into();
             info["endpoint"] = format!("/api/adapters/{index}/feed").into();
             info["subscriptionsEndpoint"] = format!("/api/adapters/{index}/subscriptions").into();
+            if adapter.descriptor.mode == lobo_replay::custom::FeedMode::Replay {
+                info["playbackEndpoint"] = format!("/api/adapters/{index}/playback").into();
+                info["playback"] = serde_json::to_value(
+                    adapter
+                        .session
+                        .playback(lobo_replay::custom::runtime::PlaybackCommand::Status)?,
+                )
+                .map_err(|e| e.to_string())?;
+            }
             info["books"] = directory.clone().into();
             books.extend(directory);
             feeds.push(info);
@@ -73,6 +86,43 @@ async fn configuration(
     Ok(Json(
         serde_json::json!({"mode":"server","name":"Python books","books":books,"adapters":feeds,"metrics":registry.metrics.bits()}),
     ))
+}
+
+async fn adapter_playback(
+    state: State<Arc<Registry>>,
+    index: Path<usize>,
+) -> Result<Json<lobo_replay::custom::runtime::PlaybackStatus>, ApiError> {
+    adapter_playback_command(
+        state,
+        index,
+        Json(lobo_replay::custom::runtime::PlaybackCommand::Status),
+    )
+    .await
+}
+async fn adapter_playback_command(
+    State(registry): State<Arc<Registry>>,
+    Path(index): Path<usize>,
+    Json(command): Json<lobo_replay::custom::runtime::PlaybackCommand>,
+) -> Result<Json<lobo_replay::custom::runtime::PlaybackStatus>, ApiError> {
+    let adapter = registry
+        .adapters
+        .read()
+        .get(index)
+        .cloned()
+        .ok_or(ApiError(
+            StatusCode::NOT_FOUND,
+            "Adapter does not exist".into(),
+        ))?;
+    tokio::task::spawn_blocking(move || adapter.session.playback(command))
+        .await
+        .map_err(|_| {
+            ApiError(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Playback task failed".into(),
+            )
+        })?
+        .map(Json)
+        .map_err(|error| ApiError(StatusCode::UNPROCESSABLE_ENTITY, error))
 }
 
 #[derive(serde::Deserialize, schemars::JsonSchema)]
@@ -107,9 +157,7 @@ async fn adapter_subscribe(
     Ok(StatusCode::NO_CONTENT)
 }
 
-async fn books(
-    State(registry): State<Arc<Registry>>,
-) -> Json<Vec<lobo_models::server::BookInfo>> {
+async fn books(State(registry): State<Arc<Registry>>) -> Json<Vec<lobo_models::server::BookInfo>> {
     Json(registry.directory())
 }
 async fn snapshot(

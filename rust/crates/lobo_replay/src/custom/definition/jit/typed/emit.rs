@@ -47,67 +47,8 @@ pub(super) struct Builder {
 
 impl Builder {
     pub fn constant(&mut self, value: &Value, shape: Id) -> Result<usize, String> {
-        let missing = unsafe { *(self.missing as *const Record) };
-        let mut record = Record {
-            present: 1,
-            ..missing
-        };
-        match value {
-            Value::Null => {}
-            Value::Bool(value) => {
-                record.kind = BOOL;
-                record.number.low = u64::from(*value);
-            }
-            Value::Number(value) => {
-                record.kind = NUMBER;
-                record.number(Number::parse(value.as_str().as_bytes()).map_err(str::to_owned)?);
-                if record.valid & VALID_UNSIGNED != 0 {
-                    record.identifier =
-                        lobo_primitives::uuid::Uuid::from_u128(u128::from(record.unsigned));
-                    record.valid |= VALID_ID;
-                }
-                record.text = self.constants.bytes(value.as_str().as_bytes());
-            }
-            Value::String(value) => {
-                record.kind = TEXT;
-                record.text = self.constants.bytes(value.as_bytes());
-                record.text_projection::<true, true, true>();
-            }
-            Value::Array(values) => {
-                record.kind = ARRAY;
-                let child = self.layout.shapes[shape]
-                    .element
-                    .ok_or("Array constant has no row layout")?;
-                let rows = self.constants.allocate::<usize>(values.len());
-                for (i, value) in values.iter().enumerate() {
-                    let value = self.constant(value, child)?;
-                    unsafe {
-                        rows.add(i).write(value);
-                    }
-                }
-                record.elements = Span {
-                    address: rows as usize,
-                    length: values.len(),
-                };
-            }
-            Value::Object(values) => {
-                record.kind = OBJECT;
-                let shape = self.layout.shapes[shape].clone();
-                let fields = self.constants.allocate::<usize>(shape.fields.len());
-                for (i, (name, child)) in shape.fields.iter().enumerate() {
-                    let value = match values.get(name) {
-                        Some(value) => self.constant(value, *child)?,
-                        None => self.missing,
-                    };
-                    unsafe {
-                        fields.add(i).write(value);
-                    }
-                }
-                record.fields = fields as usize;
-                record.object_length = values.len() as u64;
-            }
-        }
-        Ok(self.constants.put(record) as usize)
+        self.layout
+            .project(value, shape, &mut self.constants, self.missing)
     }
 
     pub fn function(

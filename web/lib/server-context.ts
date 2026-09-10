@@ -1,4 +1,5 @@
 import type { AdapterInfo } from "./wasm";
+import type { PlaybackStatus } from "./hosted-playback.mjs";
 
 export interface ServerConfiguration {
   mode: "server";
@@ -7,6 +8,8 @@ export interface ServerConfiguration {
   adapters?: (AdapterInfo & {
     observer?: boolean;
     subscriptionsEndpoint?: string;
+    playbackEndpoint?: string;
+    playback?: PlaybackStatus;
     books: ServerConfiguration["books"];
   })[];
   books: {

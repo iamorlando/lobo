@@ -34,6 +34,13 @@ import {
   subscribeHostedAdapter,
   type ServerConfiguration,
 } from "@/lib/server-context";
+import {
+  hostedPlayback,
+  seekTimestamp,
+  sourceMode,
+  type PlaybackCommand,
+  type PlaybackStatus,
+} from "@/lib/hosted-playback.mjs";
 
 const count = new Intl.NumberFormat("en-US");
 const price = (value: number, decimals = 2) =>
@@ -146,13 +153,17 @@ export default function ReplayLab({
   );
   const [start, setStart] = useState("09:30:00");
   const [generation, setGeneration] = useState(0);
-  const [playing, setPlaying] = useState(true);
+  const [playing, setPlaying] = useState(
+    () => !server?.adapters?.[0]?.playback?.paused,
+  );
   const [reconstruction, setReconstruction] = useState({
     clock: 0,
     percent: 0,
     target: start,
   });
-  const [speed, setSpeed] = useState<ReplaySpeed>(5);
+  const [speed, setSpeed] = useState<ReplaySpeed>(
+    server?.adapters?.[0]?.playback?.speed ?? 5,
+  );
   const [windowSeconds, setWindow] = useState(300);
   const [span, setSpan] = useState(0.005);
   const [volumeView, setVolumeView] = useState(false);
@@ -164,7 +175,16 @@ export default function ReplayLab({
     notional: aggregations.notional.initial,
   });
   const [liveVolumeSize, setLiveVolumeSize] = useState(1);
-  const isLive = choice.kind === "live";
+  const isLive = sourceMode(choice, hostedAdapter) === "live";
+  const playbackEndpoint = hostedAdapter?.playbackEndpoint;
+  const hostedState = useRef<PlaybackStatus | undefined>(
+    hostedAdapter?.playback,
+  );
+  const [playbackBusy, setPlaybackBusy] = useState(false);
+  const playbackRequest = useRef(false);
+  const playbackVersion = useRef(0);
+  const currentPlaybackEndpoint = useRef(playbackEndpoint);
+  currentPlaybackEndpoint.current = playbackEndpoint;
   const barSize =
     aggregation === "volume" && isLive ? liveVolumeSize : barSizes[aggregation];
   const barOptions =
@@ -178,7 +198,11 @@ export default function ReplayLab({
   const [stats, setStats] = useState(() => ({
     ...initial,
     ...(server
-      ? { name: server.name, mode: "live" as const, timezone: "UTC" }
+      ? {
+          name: server.name,
+          mode: sourceMode(choice, hostedAdapter),
+          timezone: hostedAdapter?.timezone ?? "UTC",
+        }
       : {}),
   }));
   const [sessionError, setError] = useState("");
@@ -209,6 +233,81 @@ export default function ReplayLab({
   loadedValue.current = loadedTicker;
   const startValue = useRef(start);
   startValue.current = start;
+
+  const acceptPlayback = (state: PlaybackStatus) => {
+    hostedState.current = state;
+    controls.current.playing = !state.paused;
+    setPlaying(!state.paused);
+    setSpeed(state.speed);
+    if (state.error) setError(state.error);
+  };
+  const controlPlayback = async (command: PlaybackCommand) => {
+    if (!playbackEndpoint || playbackRequest.current) return;
+    playbackRequest.current = true;
+    playbackVersion.current++;
+    setPlaybackBusy(true);
+    try {
+      const state = await hostedPlayback(playbackEndpoint, command);
+      if (currentPlaybackEndpoint.current !== playbackEndpoint) return;
+      acceptPlayback(state);
+      setError("");
+      if (command.action === "seek" || command.action === "restart") {
+        setSimulation(null);
+        setQueue(null);
+        // Recreate chart history and obtain a coherent post-seek snapshot.
+        setGeneration((n) => n + 1);
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      playbackRequest.current = false;
+      setPlaybackBusy(false);
+    }
+  };
+  const changePlaying = (next: boolean) => {
+    if (playbackEndpoint)
+      void controlPlayback({ action: next ? "play" : "pause" });
+    else {
+      controls.current.playing = next;
+      setPlaying(next);
+    }
+  };
+  useEffect(() => {
+    if (!playbackEndpoint) {
+      hostedState.current = undefined;
+      return;
+    }
+    const abort = new AbortController();
+    let timer: ReturnType<typeof setTimeout>;
+    const refresh = async () => {
+      try {
+        if (!playbackRequest.current) {
+          const version = playbackVersion.current;
+          const state = await hostedPlayback(
+            playbackEndpoint,
+            undefined,
+            abort.signal,
+          );
+          if (
+            !abort.signal.aborted &&
+            !playbackRequest.current &&
+            version === playbackVersion.current
+          )
+            acceptPlayback(state);
+        }
+      } catch (cause) {
+        if (!abort.signal.aborted)
+          setError(cause instanceof Error ? cause.message : String(cause));
+      } finally {
+        if (!abort.signal.aborted) timer = setTimeout(refresh, 200);
+      }
+    };
+    void refresh();
+    return () => {
+      abort.abort();
+      clearTimeout(timer);
+    };
+  }, [playbackEndpoint]);
 
   useEffect(() => {
     if (server) return;
@@ -374,8 +473,9 @@ export default function ReplayLab({
     setStats({
       ...initial,
       status: "Loading",
-      mode: choice.kind === "live" ? "live" : "replay",
-      timezone: choice.kind === "live" ? "UTC" : "ET",
+      mode: sourceMode(choice, hostedAdapter),
+      timezone:
+        hostedAdapter?.timezone ?? (choice.kind === "live" ? "UTC" : "ET"),
       name:
         choice.kind === "file"
           ? choice.file.name
@@ -473,6 +573,7 @@ export default function ReplayLab({
         loadingAnimation = requestAnimationFrame(animateLoading);
         let eof = false,
           directoryCount = -1;
+        let observedClock = 0;
         const read = async () => {
           if (eof) return;
           const chunk = await source.read();
@@ -489,13 +590,27 @@ export default function ReplayLab({
         const frame = async (now: number) => {
           if (disposed || !native) return;
           try {
+            if (live && source.adapter.mode === "replay") {
+              if (native.source_clock_ms < observedClock) {
+                // Python or another browser can rewind the shared replay too.
+                // Recreate GPU history from the host's reconstructed snapshot.
+                setGeneration((n) => n + 1);
+                return;
+              }
+              observedClock = native.source_clock_ms;
+            }
             const dt = previous ? Math.min(now - previous, 250) : 0;
             previous = now;
             const wasWarming = !live && native.warming;
             if (live) {
-              if (native.start_ms)
+              if (native.start_ms && source.adapter.mode === "live")
                 native.advance(
                   Math.max(0, Date.now() - native.start_ms),
+                  20000,
+                );
+              else if (source.adapter.mode === "replay")
+                native.advance(
+                  Math.max(0, native.source_clock_ms - native.start_ms),
                   20000,
                 );
               connection.current?.flush();
@@ -609,17 +724,25 @@ export default function ReplayLab({
                   status: "Reconstructing",
                 }));
               } else {
-                const status = live
-                  ? connection.current?.status() === "Connected"
-                    ? native.warming
-                      ? "Waiting for snapshot"
-                      : "Live"
-                    : connection.current?.status() || "Connecting"
-                  : native.complete
-                    ? "Complete"
-                    : controls.current.playing
-                      ? "Playing"
-                      : "Paused";
+                const playback = hostedState.current;
+                const status =
+                  live && source.adapter.mode === "live"
+                    ? connection.current?.status() === "Connected"
+                      ? native.warming
+                        ? "Waiting for snapshot"
+                        : "Live"
+                      : connection.current?.status() || "Connecting"
+                    : playback?.seeking
+                      ? "Reconstructing"
+                      : (playback?.complete ?? native.complete)
+                        ? "Complete"
+                        : (
+                              playback
+                                ? !playback.paused
+                                : controls.current.playing
+                            )
+                          ? "Playing"
+                          : "Paused";
                 setSimulation(
                   JSON.parse(
                     native.simulation_status(),
@@ -714,13 +837,12 @@ export default function ReplayLab({
   useEffect(() => {
     const hide = () => {
       if (document.hidden) {
-        controls.current.playing = false;
-        setPlaying(false);
+        changePlaying(false);
       }
     };
     document.addEventListener("visibilitychange", hide);
     return () => document.removeEventListener("visibilitychange", hide);
-  }, []);
+  }, [playbackEndpoint]);
   const chooseSource = (next: SourceChoice) => {
     setScope(next.kind === "nasdaq" ? ["AAPL"] : null);
     const adapter =
@@ -734,11 +856,35 @@ export default function ReplayLab({
       setVolumeView(false);
       session.current?.show_volume_bars(false);
     }
-    setPlaying(true);
+    setPlaying(adapter?.mode === "replay" && server ? false : true);
   };
   const restart = () => {
+    if (playbackEndpoint) {
+      void controlPlayback({ action: "restart" });
+      return;
+    }
     setGeneration((n) => n + 1);
     setPlaying(true);
+  };
+  const seek = async () => {
+    if (!playbackEndpoint) {
+      restart();
+      return;
+    }
+    try {
+      // An untouched epoch-based file has no known recording day yet. Discover
+      // its origin through the public replay API before interpreting START AT.
+      if (hostedState.current?.start_ns == null) {
+        await controlPlayback({ action: "restart" });
+        if (hostedState.current?.start_ns == null) return;
+      }
+      void controlPlayback({
+        action: "seek",
+        timestamp_ns: seekTimestamp(start, hostedState.current?.clock_ns ?? 0),
+      });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    }
   };
   const sourceProgress = stats.compressed ? stats.received : stats.consumed;
   const progress = stats.size
@@ -751,7 +897,7 @@ export default function ReplayLab({
     "Reconnecting",
     "Waiting for snapshot",
   ].includes(stats.status);
-  const preparing = !isLive && loading;
+  const preparing = !isLive && (loading || playbackBusy);
   const sourceOptions = [
     ...(!server
       ? [
@@ -811,7 +957,9 @@ export default function ReplayLab({
             >
               <span>{source.name}</span>
               {source.selected ? (
-                <span className="source-active">Active</span>
+                <span className="source-active">
+                  {source.mode === "live" ? "Live" : "Replay"} · Active
+                </span>
               ) : (
                 <span
                   className={source.mode === "live" ? "green" : "source-mode"}
@@ -971,7 +1119,9 @@ export default function ReplayLab({
               <div className="clock-quote">
                 <span className="field-label">EXCHANGE TIME</span>
                 <strong>
-                  {clock(stats.clock)}
+                  {playbackEndpoint && hostedState.current?.start_ns == null
+                    ? "—"
+                    : clock(stats.clock)}
                   <small>{stats.timezone}</small>
                 </strong>
                 <span className="feed-capabilities">
@@ -1035,11 +1185,10 @@ export default function ReplayLab({
                     <button
                       className="play-button"
                       aria-label={playing ? "Pause replay" : "Play replay"}
-                      disabled={!!error || stats.status === "Complete"}
-                      onClick={() => {
-                        controls.current.playing = !playing;
-                        setPlaying(!playing);
-                      }}
+                      disabled={
+                        !!error || playbackBusy || stats.status === "Complete"
+                      }
+                      onClick={() => changePlaying(!playing)}
                     >
                       <Icon kind={playing ? "pause" : "play"} />
                     </button>
@@ -1047,6 +1196,7 @@ export default function ReplayLab({
                       className="icon-button"
                       aria-label="Restart replay"
                       title="Restart replay"
+                      disabled={playbackBusy}
                       onClick={restart}
                     >
                       <Icon kind="restart" />
@@ -1065,7 +1215,14 @@ export default function ReplayLab({
                           key={value}
                           aria-pressed={speed === value}
                           className={speed === value ? "active" : ""}
-                          onClick={() => setSpeed(value)}
+                          onClick={() =>
+                            playbackEndpoint
+                              ? void controlPlayback({
+                                  action: "speed",
+                                  speed: value,
+                                })
+                              : setSpeed(value)
+                          }
                         >
                           {speedLabel(value)}
                         </button>
@@ -1081,7 +1238,11 @@ export default function ReplayLab({
                       value={start}
                       onChange={(e) => setStart(e.target.value)}
                     />
-                    <button className="subtle" onClick={restart}>
+                    <button
+                      className="subtle"
+                      disabled={playbackBusy}
+                      onClick={seek}
+                    >
                       Apply
                     </button>
                   </div>
@@ -1107,7 +1268,7 @@ export default function ReplayLab({
                 <dt>{loadedTicker} updates</dt>
                 <dd>{count.format(stats.updates)}</dd>
               </div>
-              {isLive ? (
+              {isLive || playbackEndpoint ? (
                 <>
                   <div>
                     <dt>Received</dt>
@@ -1147,7 +1308,7 @@ export default function ReplayLab({
                 </>
               )}
             </dl>
-            {!isLive && (
+            {!isLive && !playbackEndpoint && (
               <div
                 className="progress-track"
                 role="progressbar"
@@ -1178,7 +1339,7 @@ export default function ReplayLab({
             status={simulation}
             ended={stats.status === "Complete"}
             onOpen={() => {
-              if (stats.mode === "replay") setPlaying(false);
+              if (stats.mode === "replay") changePlaying(false);
             }}
             onRun={(kind, side, price, quantity) => {
               const native = session.current;
@@ -1189,7 +1350,7 @@ export default function ReplayLab({
                 JSON.parse(native.simulation_status()) as SimulationStatus,
               );
               setQueue(JSON.parse(native.queue_status()) as QueueStatus | null);
-              if (kind === "limit") setPlaying(true);
+              if (kind === "limit") changePlaying(true);
             }}
             onReturn={() => {
               session.current?.return_to_main();
@@ -1201,9 +1362,11 @@ export default function ReplayLab({
           <p className="session-note">
             {isLive
               ? "Public market data · no credentials. Fresh snapshots restore books after reconnection."
-              : choice.kind === "nasdaq"
-                ? "Nasdaq gzip stream · no session file saved. Reconstructed from the start. Hidden tabs pause playback."
-                : "Reconstructed from the start. Local files stay on this device. Hidden tabs pause playback."}
+              : playbackEndpoint
+                ? "Shared playback · recorded data. Seeking reconstructs from the beginning."
+                : choice.kind === "nasdaq"
+                  ? "Nasdaq gzip stream · no session file saved. Reconstructed from the start. Hidden tabs pause playback."
+                  : "Reconstructed from the start. Local files stay on this device. Hidden tabs pause playback."}
           </p>
         </aside>
         <section className="book-panel" aria-label="Order book charts">

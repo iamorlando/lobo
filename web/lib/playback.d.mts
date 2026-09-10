@@ -1,5 +1,5 @@
 import type { Session } from "./wasm";
-export type ReplaySpeed = 1 | 5 | 10 | 100 | 1000;
+export type ReplaySpeed = number;
 export const SPEEDS: ReplaySpeed[];
 export function speedLabel(speed: ReplaySpeed): string;
 export class ReplayClock {

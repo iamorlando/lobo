@@ -76,11 +76,7 @@ fn read_record<R>(
     #[cfg(all(feature = "jit", not(target_arch = "wasm32")))]
     let size = plan.code.length(&bytes[..prefix])?;
     #[cfg(not(all(feature = "jit", not(target_arch = "wasm32"))))]
-    let size = spec.length.number(&bytes[..prefix])? as usize;
-    #[cfg(not(all(feature = "jit", not(target_arch = "wasm32"))))]
-    if size == 0 || size > spec.max_record_size {
-        return Err("Invalid record length".into());
-    }
+    let size = spec.payload_length(spec.length.number(&bytes[..prefix])?)?;
     let available = reader.fill_buf().map_err(|e| e.to_string())?;
     if available.len() >= size {
         let result = visit(&available[..size]);
@@ -171,14 +167,11 @@ impl FileFormat {
                 let tag = binary.tag.number(bytes)?;
                 let route = binary.key.number(bytes)?;
                 protocol.vars.insert("key".into(), route.into());
+                protocol
+                    .vars
+                    .insert("clock".into(), binary.timestamp.number(bytes)?.into());
                 if let Some(record) = binary.records.get(&tag) {
-                    let row = serde_json::Value::Object(
-                        record
-                            .fields
-                            .iter()
-                            .map(|(name, field)| field.value(bytes).map(|v| (name.clone(), v)))
-                            .collect::<Result<_, _>>()?,
-                    );
+                    let row = record.decode(bytes, binary.minimum_header())?;
                     let actions = record
                         .actions
                         .iter()

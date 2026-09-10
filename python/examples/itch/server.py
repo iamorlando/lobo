@@ -15,9 +15,19 @@ else:
 
 
 def main() -> None:
+    """Host a recorded session with shared playback controls."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--symbol", default="AAPL")
+    parser.add_argument("--play", action="store_true", help="Start playing immediately")
+    parser.add_argument(
+        "--speed", type=float, default=1.0, help="Source-time multiplier"
+    )
+    parser.add_argument(
+        "--start-ns",
+        type=int,
+        help="Reconstruct through this source timestamp in nanoseconds",
+    )
     parser.add_argument(
         "--source",
         default=str(
@@ -33,7 +43,13 @@ def main() -> None:
     )
     adapter = build_adapter(source, symbol=args.symbol, scope=[args.symbol])
 
-    with server_context(adapters=[adapter], port=args.port) as server:
+    with server_context(
+        adapters=[adapter], port=args.port, replay_paused=True, replay_speed=args.speed
+    ) as server:
+        if args.start_ns is not None:
+            adapter.seek(args.start_ns)
+        if args.play:
+            adapter.play()
         print(server.url, flush=True)
         try:
             Event().wait()

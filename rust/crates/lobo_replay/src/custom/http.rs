@@ -20,12 +20,20 @@ struct Input<'a> {
 impl Write for Input<'_> {
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
         for chunk in bytes.chunks(self.chunk_size) {
-            if !self.controls.poll(self.adapter) {
+            if !self
+                .controls
+                .ready(self.adapter)
+                .map_err(io::Error::other)?
+            {
                 return Err(io::ErrorKind::ConnectionAborted.into());
             }
-            self.adapter
-                .receive(chunk, false)
-                .map_err(io::Error::other)?;
+            if !self
+                .controls
+                .receive(self.adapter, chunk, false)
+                .map_err(io::Error::other)?
+            {
+                return Err(io::ErrorKind::ConnectionAborted.into());
+            }
             if !advance(self.adapter, self.controls).map_err(io::Error::other)? {
                 return Err(io::ErrorKind::ConnectionAborted.into());
             }
@@ -58,7 +66,7 @@ impl<'a> Decoder<'a> {
             gzip.try_finish().map_err(|e| e.to_string())?;
         }
         let input = self.input();
-        input.adapter.receive(&[], true)?;
+        input.controls.receive(input.adapter, &[], true)?;
         advance(input.adapter, input.controls)?;
         Ok(())
     }
@@ -151,6 +159,13 @@ pub(super) fn run(
                 };
             }
         }
-        decoder.finish()
+        let result = decoder.finish();
+        // A seek/close can interrupt the decompressor while it emits its final
+        // buffered output, just as it can interrupt an ordinary chunk write.
+        if controls.is_stopped() {
+            Ok(())
+        } else {
+            result
+        }
     })
 }

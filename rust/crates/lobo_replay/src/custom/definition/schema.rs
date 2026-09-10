@@ -418,11 +418,25 @@ fn big() -> String {
 /// The enclosing Binary format supplies the record tag, routing key, and clock.
 ///
 /// Args:
-///     size: The exact payload size in bytes, excluding the length prefix.
+///     size: Exact payload size, excluding the prefix, or None for variable size.
+///         Fixed-size declarations retain strict equality checks.
 ///     fields: A dictionary from field names to UInt or Text declarations. Offsets
 ///         are relative to the start of the payload, not to the length prefix.
 ///     actions: Actions to execute in order for this record type. An empty sequence
 ///         can describe a record that affects no book state.
+///     block_length: Optional UInt containing the transmitted root block length.
+///         The root ends at block_offset + its value; scalar offsets still start
+///         at the payload. This skips unknown fixed-block extension bytes.
+///     block_offset: Bytes before the root block; requires block_length.
+///     groups: Group declarations in wire order. Without block_length the first
+///         group follows the last scalar/header field, or its explicit offset.
+///     allow_trailing: With size=None, allow uninterpreted bytes after the declared
+///         layout. Defaults to False to catch schema mismatches and bad counts.
+///
+/// Within actions Field reads the decoded object; nested ForEach changes its
+/// current item, while Root reads the message object. Variable layouts execute
+/// natively through CustomAdapter.start()/wait(), including hosted adapters.
+/// CustomAdapter.run() supports fixed-record bulk mappings only.
 ///
 /// Raises:
 ///     ValueError: A field extends outside the payload or has an unsupported layout.
@@ -446,11 +460,101 @@ fn big() -> String {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Record {
     /// The exact record payload size in bytes, excluding the length prefix.
-    pub size: usize,
+    /// None accepts a variable payload, checked against its fields and groups.
+    pub size: Option<usize>,
     /// Named payload fields made available to Field expressions while this record executes.
     pub fields: BTreeMap<String, BinaryField>,
     /// Nested actions executed in declaration order for the current item or book.
     pub actions: Vec<Action>,
+    /// Optional transmitted root block length, read relative to the payload.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub block_length: Option<BinaryField>,
+    /// Bytes preceding the root block (for example, a message header).
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub block_offset: usize,
+    /// Ordered repeating groups following the root block.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub groups: Vec<Group>,
+    /// Permit uninterpreted bytes after the declared layout in variable records.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub allow_trailing: bool,
+}
+
+/// Decode a repeating group into an array for ForEach and Field expressions.
+///
+/// Args:
+///     name: Field name of the resulting array in its containing record or entry.
+///     header_size: Size of the group's dimension header, in bytes.
+///     count: UInt relative to the dimension header containing the entry count.
+///     block_length: UInt relative to the dimension header containing each entry's
+///         fixed block size. Unknown extension bytes in that block are skipped.
+///     fields: Named UInt/Text fields, with offsets relative to each entry.
+///     offset: Explicit group-header offset relative to its containing payload or
+///         entry. None follows the root block or the preceding group.
+///     groups: Nested groups following each entry's fixed block, in wire order.
+///     max_count: Maximum accepted entries in this group (default 65535).
+///     alignment: Align the group-header offset to this power of two, relative to
+///         the containing payload or entry (default 1, no padding).
+///
+/// Field("orders") accesses a top-level group. Inside ForEach it is the entry
+/// object: Field("id") reads that entry; Root("version") reads a declared root
+/// field. Variable("clock") supplies the enclosing Binary.timestamp value.
+/// All entries are decoded and bounds-checked in Rust before any record action
+/// runs. A zero count produces an empty array. Truncated headers, undersized
+/// blocks, excessive counts and overlapping explicit offsets fail with RuntimeError
+/// from CustomAdapter.wait(). Invalid declarations raise ValueError at setup.
+/// Nesting is limited to 16 levels, and at most 65535 entries may be decoded
+/// across all groups in a single record, including nested entries.
+///
+/// Examples:
+/// ```python
+/// from lobo.replay.adapters import models as lm
+///
+/// orders = lm.Group("orders", header_size=4,
+///     count=lm.UInt(2, 2, byteorder="little"),
+///     block_length=lm.UInt(0, 2, byteorder="little"),
+///     fields={"id": lm.UInt(0, 8, byteorder="little")})
+/// ```
+#[cfg_attr(
+    feature = "python",
+    pyo3::pyclass(module = "lobo.replay.adapters.models", frozen, from_py_object)
+)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Group {
+    /// The array field name.
+    pub name: String,
+    /// Length of the dimension header.
+    pub header_size: usize,
+    /// Entry count within the dimension header.
+    pub count: BinaryField,
+    /// Fixed entry block length within the dimension header.
+    pub block_length: BinaryField,
+    /// Entry-relative scalar fields.
+    pub fields: BTreeMap<String, BinaryField>,
+    /// Optional containing-block-relative header location.
+    #[serde(default)]
+    pub offset: Option<usize>,
+    /// Nested groups in wire order.
+    #[serde(default)]
+    pub groups: Vec<Group>,
+    /// Maximum accepted entry count.
+    #[serde(default = "group_limit")]
+    pub max_count: usize,
+    /// Header alignment relative to the containing record or entry.
+    #[serde(default = "one")]
+    pub alignment: usize,
+}
+fn group_limit() -> usize {
+    65535
+}
+fn one() -> usize {
+    1
+}
+fn is_zero(value: &usize) -> bool {
+    *value == 0
+}
+fn is_false(value: &bool) -> bool {
+    !*value
 }
 /// Length-prefix framing and the payload layouts selected by numeric record tags.
 ///
@@ -471,6 +575,10 @@ pub struct Binary {
     pub records: BTreeMap<u64, Record>,
     /// The largest accepted record payload, in bytes, between one and 65535.
     pub max_record_size: usize,
+    /// If true the transmitted length includes the prefix itself. Payload offsets
+    /// still exclude the prefix, and max_record_size still bounds payload bytes.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub length_includes_prefix: bool,
 }
 fn record_map<'de, D: serde::Deserializer<'de>>(
     deserializer: D,
@@ -740,18 +848,10 @@ impl Definition {
                     return Err("Record length must be an integer prefix at offset zero".into());
                 }
                 for field in [&binary.tag, &binary.key, &binary.timestamp] {
-                    field.validate(binary.max_record_size)?;
+                    super::binary_layout::uint(field, binary.max_record_size)?;
                 }
                 for record in binary.records.values() {
-                    if record.size == 0 || record.size > binary.max_record_size {
-                        return Err("Invalid binary record size".into());
-                    }
-                    for field in [&binary.tag, &binary.key, &binary.timestamp] {
-                        field.validate(record.size)?;
-                    }
-                    for field in record.fields.values() {
-                        field.validate(record.size)?;
-                    }
+                    record.validate_layout(binary.max_record_size, binary.minimum_header())?;
                     validate_actions(&record.actions)?;
                 }
             }

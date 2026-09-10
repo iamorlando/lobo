@@ -108,6 +108,12 @@ manylinux-aarch64-image = "manylinux_2_28"
 [tool.cibuildwheel.macos]
 environment = { MACOSX_DEPLOYMENT_TARGET = "11.0", CARGO_BUILD_JOBS = "2" }
 
+[tool.cibuildwheel.windows]
+# cibuildwheel 4.2.1 passes test-requires through cmd.exe without quoting < and >.
+# Keep these requirements aligned with the shared test-requires above.
+test-requires = []
+before-test = 'python -m pip install "pytest>=9,<10" "websockets>=15,<17" tzdata'
+
 [tool.ruff]
 include = [
     "python/**/*.py",

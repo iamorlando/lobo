@@ -364,10 +364,20 @@ impl PyCustomAdapter {
     }
 }
 impl PyCustomAdapter {
+    fn playback_command(
+        &self,
+        py: Python<'_>,
+        command: crate::custom::runtime::PlaybackCommand,
+    ) -> PyResult<Py<PyAny>> {
+        let handle = self.active()?.handle();
+        let status = py.detach(move || handle.playback(command)).map_err(error)?;
+        to_python(py, serde_json::to_value(status).map_err(error)?)
+    }
     fn start_with_publisher(
         &mut self,
         py: Python<'_>,
         observer: Option<crate::custom::observer::channel::Publisher>,
+        playback: Option<(bool, f64)>,
     ) -> PyResult<()> {
         if self.session.is_some() || self.result.is_some() {
             return Err(PyRuntimeError::new_err("Feed is already started"));
@@ -380,29 +390,57 @@ impl PyCustomAdapter {
         let symbol = self.symbol.clone();
         let scope = self.scope.clone();
         let instruments = self.instruments.clone();
+        let json_packets = matches!(
+            definition.plan.format,
+            crate::custom::definition::schema::Format::Json { .. }
+        );
+        if playback.is_some() && definition.descriptor.mode != FeedMode::Replay {
+            return Err(PyValueError::new_err(
+                "Playback options require FeedMode.Replay",
+            ));
+        }
+        if playback.is_some()
+            && json_packets
+            && matches!(source, Source::File { .. } | Source::Http { .. })
+        {
+            return Err(PyValueError::new_err(
+                "Recorded JSON playback requires Source.json_lines() or Source.packets()",
+            ));
+        }
         self.session = Some(
             py.detach(move || {
-                Session::spawn_boxed(
-                    move || {
-                        let mut adapter = match observer {
-                            Some(publisher) => definition.create_observed(&symbol, publisher)?,
-                            None => definition.create(&symbol)?,
-                        };
-                        adapter.set_book_scope(scope)?;
-                        for instrument in instruments {
-                            adapter.register_instrument(
-                                crate::feed::Instrument {
-                                    symbol: instrument.symbol.clone(),
-                                    price_decimals: instrument.price_decimals,
-                                    quantity_decimals: instrument.quantity_decimals,
-                                },
-                                instrument.policy,
-                            )?;
+                let publisher = observer.clone();
+                let factory = move |observed: bool| {
+                    let mut adapter = match observer.as_ref().filter(|_| observed) {
+                        Some(publisher) => {
+                            definition.create_observed(&symbol, publisher.clone())?
                         }
-                        Ok(adapter)
-                    },
-                    Box::new(source),
-                )
+                        None => definition.create(&symbol)?,
+                    };
+                    adapter.set_book_scope(scope.clone())?;
+                    for instrument in &instruments {
+                        adapter.register_instrument(
+                            crate::feed::Instrument {
+                                symbol: instrument.symbol.clone(),
+                                price_decimals: instrument.price_decimals,
+                                quantity_decimals: instrument.quantity_decimals,
+                            },
+                            instrument.policy,
+                        )?;
+                    }
+                    Ok(adapter)
+                };
+                match playback {
+                    Some((paused, speed)) => Session::spawn_playback(
+                        factory,
+                        source,
+                        paused,
+                        speed,
+                        json_packets,
+                        publisher,
+                    ),
+                    None => Session::spawn_boxed(move || factory(true), Box::new(source)),
+                }
             })
             .map_err(error)?,
         );
@@ -425,9 +463,13 @@ impl PyCustomAdapter {
         &mut self,
         py: Python<'_>,
         capacity: usize,
+        replay_paused: bool,
+        replay_speed: f64,
     ) -> PyResult<crate::custom::observer::HostedAdapter> {
         let publisher = crate::custom::observer::channel::Publisher::new(capacity);
-        self.start_with_publisher(py, Some(publisher.clone()))?;
+        let playback = (self.definition.descriptor.mode == FeedMode::Replay)
+            .then_some((replay_paused, replay_speed));
+        self.start_with_publisher(py, Some(publisher.clone()), playback)?;
         Ok(crate::custom::observer::HostedAdapter {
             session: self.active()?.handle(),
             publisher,
@@ -510,10 +552,66 @@ impl PyCustomAdapter {
     /// live discovery to finish. Use wait() for finite input and close() or a context
     /// manager to stop a live source. A session already started is left running.
     ///
+    /// Args:
+    ///     paused: None starts unpaced processing. True or False enables paced
+    ///         replay, initially paused or playing respectively.
+    ///     speed: Playback multiplier in (0, 1000]. A value other than 1.0
+    ///         requires an explicit paused argument.
+    ///
     /// Raises:
     ///     RuntimeError: The source cannot be prepared or a worker cannot be started.
-    fn start(&mut self, py: Python<'_>) -> PyResult<()> {
-        self.start_with_publisher(py, None)
+    /// Pass paused=True (or False) to enable paced replay controls. With no
+    /// paused argument, start() retains its unpaced finite-source behavior.
+    #[pyo3(signature=(*,paused=None,speed=1.0))]
+    fn start(&mut self, py: Python<'_>, paused: Option<bool>, speed: f64) -> PyResult<()> {
+        if paused.is_none() && speed != 1.0 {
+            return Err(PyValueError::new_err(
+                "Pass paused=True or False to configure paced replay",
+            ));
+        }
+        self.start_with_publisher(py, None, paused.map(|paused| (paused, speed)))
+    }
+    /// Read shared playback state, including the absolute source clock in nanoseconds.
+    #[getter]
+    fn playback(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        self.playback_command(py, crate::custom::runtime::PlaybackCommand::Status)
+    }
+    /// Resume a paced replay. EOF stays stopped until restart() or seek().
+    fn play(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        self.playback_command(py, crate::custom::runtime::PlaybackCommand::Play)
+    }
+    /// Pause the worker; no further recorded changes apply after this returns.
+    fn pause(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        self.playback_command(py, crate::custom::runtime::PlaybackCommand::Pause)
+    }
+    /// Set a finite playback multiplier greater than zero and at most 1000.
+    ///
+    /// Args:
+    ///     speed: Source nanoseconds advanced per elapsed wall-clock nanosecond.
+    ///
+    /// Returns:
+    ///     The updated shared playback state.
+    fn set_speed(&self, py: Python<'_>, speed: f64) -> PyResult<Py<PyAny>> {
+        self.playback_command(py, crate::custom::runtime::PlaybackCommand::Speed { speed })
+    }
+    /// Reconstruct the beginning of the recording, retaining pause and speed.
+    fn restart(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        self.playback_command(py, crate::custom::runtime::PlaybackCommand::Restart)
+    }
+    /// Rebuild from the beginning through an absolute source timestamp in ns.
+    /// Earlier timestamps clamp to the source origin; beyond EOF stops at EOF.
+    /// Returns only after reconstruction. Pause and speed are retained.
+    ///
+    /// Args:
+    ///     timestamp_ns: Absolute timestamp on the binary source's nanosecond axis.
+    ///
+    /// Returns:
+    ///     The shared playback state after reconstruction.
+    fn seek(&self, py: Python<'_>, timestamp_ns: u64) -> PyResult<Py<PyAny>> {
+        self.playback_command(
+            py,
+            crate::custom::runtime::PlaybackCommand::Seek { timestamp_ns },
+        )
     }
     /// Replay a complete local binary file into books, optionally publishing to sinks.
     ///

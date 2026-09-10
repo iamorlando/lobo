@@ -12,6 +12,37 @@ use serde_json::json;
 mod itch_fixture;
 
 #[test]
+fn hosted_replay_observer_keeps_source_clock_and_partial_state() {
+    let mut descriptor = definitions::descriptor("server", "BOOK");
+    descriptor.mode = lobo_replay::custom::FeedMode::Replay;
+    let mut viewer = CustomAdapter::new(
+        descriptor.clone(),
+        ObservedProtocol::new(descriptor, "BOOK").unwrap(),
+        "BOOK",
+    )
+    .unwrap();
+    let origin = 34_200_000_000_000u64;
+    for (sequence, clock, complete) in [
+        (1, origin + 1_000_000_000, false),
+        (2, origin, false),
+        (3, origin + 3_000_000_000, true),
+    ] {
+        let packet = json!({"type":"snapshot","sequence":sequence,"instruments":[{"symbol":"BOOK","price_decimals":0,"quantity_decimals":0,"policy":"full"}],"actions":[
+            observer::book("BOOK", vec![json!({"action":"level","side":observer::literal("buy"),"price":observer::literal(100),"quantity":observer::literal(sequence)})], true, clock, false, 0)
+        ],"start_ns":origin,"clock_ns":clock,"messages":sequence,"consumed":sequence,"complete":complete});
+        viewer
+            .receive(packet.to_string().as_bytes(), false)
+            .unwrap();
+        assert!(!viewer.state().synchronized("BOOK"));
+        assert!(!viewer.state().warming);
+        viewer.advance(u64::MAX, 1000).unwrap();
+        assert_eq!(viewer.state().clock_ns, clock);
+        assert_eq!(viewer.state().complete, complete);
+        assert!(!viewer.state().synchronized("BOOK"));
+    }
+}
+
+#[test]
 fn unvisited_instruments_survive_observer_snapshots_without_allocating_books() {
     use lobo_context::BookScope;
     use lobo_models::BookPolicy;

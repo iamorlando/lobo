@@ -8,6 +8,9 @@ impl FileFormat {
         let reserved = ["record_type", "routing_key", "timestamp_ns", "record"];
         let mut fields = BTreeMap::new();
         for record in spec.records.values() {
+            if record.variable() {
+                return Err("Variable binary records require start() and wait(); table() supports fixed scalar layouts".into());
+            }
             for (name, field) in &record.fields {
                 if reserved.contains(&name.as_str()) {
                     return Err(format!(
@@ -56,7 +59,7 @@ impl FileFormat {
                     AnyValue::BinaryOwned(bytes.to_vec()),
                 ];
                 let record = spec.records.get(&tag);
-                if record.is_some_and(|record| record.size != bytes.len()) {
+                if record.is_some_and(|record| record.size != Some(bytes.len())) {
                     return Err("Unexpected record size".into());
                 }
                 for name in fields.keys() {

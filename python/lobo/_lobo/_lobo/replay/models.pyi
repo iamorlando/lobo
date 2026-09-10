@@ -186,7 +186,8 @@ class Binary(Format):
     Describe the framing and layouts of a binary message stream.
     
     Each record starts with a length prefix followed by its payload. The length
-    counts payload bytes only. All other offsets are relative to the payload.
+    counts payload bytes by default; length_includes_prefix=True counts the entire
+    frame, including that prefix. All other offsets remain relative to the payload.
     Records whose tags are absent from records are skipped using their length.
     
     Args:
@@ -198,6 +199,29 @@ class Binary(Format):
             Record objects. A character tag is converted to its Unicode code point.
         max_record_size: The largest accepted payload size, in bytes. Defaults to
             512 and must be between 1 and 65535. This bounds framing buffers.
+        length_includes_prefix: Set True when the wire length includes its own
+            bytes. For a two-byte prefix storing 10, True reads an eight-byte
+            payload; False reads a ten-byte payload. The default is False.
+
+    Record fields and groups are decoded in Rust. For binary sources construct
+    CustomAdapter with mode=lm.FeedMode.Replay. Variable records use start() and
+    wait(); run() is a fixed-record bulk optimization and rejects them.
+    key supplies the default instrument route. For messages containing several
+    instruments, use explicit Book(symbol, ...) actions inside ForEach, with
+    fields or table lookups to select each entry's instrument. Register.key is
+    only needed for the default header route. Declare version/schema fields in
+    Record.fields and use When to guard the applicable layout's actions.
+    Binary.key and Binary.timestamp are available as Variable("key") and
+    Variable("clock"); they are not automatically added to the Field object.
+
+    Source.file and Source.http supply a continuous stream (gzip is detected for
+    files). Source.packets supplies byte chunks; chunk boundaries are not message
+    or capture-envelope boundaries. Every chunk must contain this declared stream.
+    Capture-file, network, and packet headers are not automatically detected or
+    stripped. Unknown record tags are skipped, but still need a readable common
+    tag/key/timestamp header. Binary.timestamp must already be unsigned nanoseconds
+    on a common time axis for replay scheduling. Converting an action's timestamp
+    does not change the framing clock used to pace the stream.
     
     Raises:
         TypeError: A field or record has the wrong declaration type.
@@ -214,8 +238,34 @@ class Binary(Format):
                       records={"H": lm.Record(size=11, fields={}, actions=())})
         protocol = Protocol(wire)
         ```
+
+        This complete example decodes two entries from one inclusive-length frame:
+
+        ```python
+        from lobo.replay.adapters import CustomAdapter, Protocol
+        from lobo.replay.adapters import models as lm, expressions as le
+
+        orders = lm.Group("orders", header_size=2,
+            block_length=lm.UInt(0, 1), count=lm.UInt(1, 1),
+            fields={"id": lm.UInt(0, 1), "quantity": lm.UInt(1, 1)})
+        wire = lm.Binary(length=lm.UInt(0, 2, byteorder="little"),
+            length_includes_prefix=True,
+            tag=lm.UInt(0, 1), key=lm.UInt(1, 1), timestamp=lm.UInt(2, 1),
+            records={1: lm.Record(fields={}, groups=[orders], actions=[
+                lm.Book("XYZ", le.ForEach(le.Field("orders"),
+                    lm.Add(id=le.Field("id"), side="buy", price=100,
+                        quantity=le.Field("quantity"))), snapshot=True)])})
+        # Prefix: total size 11. Payload: tag, key, clock, block size, count,
+        # then two (id, quantity) entries. The prefix is excluded from offsets.
+        source = lm.Source.packets([bytes([11, 0, 1, 0, 5, 2, 2, 7, 9, 8, 3])])
+        with CustomAdapter(Protocol(wire), source, symbol="XYZ",
+                mode=lm.FeedMode.Replay, instruments=[lm.Instrument("XYZ", 0, 0)]) as feed:
+            feed.start()
+            feed.wait()
+            assert feed.levels("XYZ")[0]["quantity"] == 12
+        ```
     """
-    def __new__(cls, /, *, length: BinaryField, tag: BinaryField, key: BinaryField, timestamp: BinaryField, records: "dict[int | str, Record]", max_record_size: int = 512) -> Binary: ...
+    def __new__(cls, /, *, length: BinaryField, tag: BinaryField, key: BinaryField, timestamp: BinaryField, records: "dict[int | str, Record]", max_record_size: int = 512, length_includes_prefix: bool = False) -> Binary: ...
 
 class BinaryField:
     """
@@ -688,6 +738,52 @@ class Format:
         """
 
 @final
+class Group:
+    """
+    Decode a repeating group into an array for ForEach and Field expressions.
+
+    Args:
+        name: Field name of the resulting array in its containing record or entry.
+        header_size: Size of the group's dimension header, in bytes.
+        count: UInt relative to the dimension header containing the entry count.
+        block_length: UInt relative to the dimension header containing each entry's
+            fixed block size. Unknown extension bytes in that block are skipped.
+        fields: Named UInt/Text fields, with offsets relative to each entry.
+        offset: Explicit group-header offset relative to its containing payload or
+            entry. None follows the root block or the preceding group.
+        groups: Nested groups following each entry's fixed block, in wire order.
+        max_count: Maximum accepted entries in this group (default 65535).
+        alignment: Align the group-header offset to this power of two, relative to
+            the containing payload or entry (default 1, no padding).
+
+    Field("orders") accesses a top-level group. Inside ForEach it is the entry
+    object: Field("id") reads that entry; Root("version") reads a declared root
+    field. Variable("clock") supplies the enclosing Binary.timestamp value.
+    All entries are decoded and bounds-checked in Rust before any record action
+    runs. A zero count produces an empty array. Truncated headers, undersized
+    blocks, excessive counts and overlapping explicit offsets fail with RuntimeError
+    from CustomAdapter.wait(). Invalid declarations raise ValueError at setup.
+    Nesting is limited to 16 levels, and at most 65535 entries may be decoded
+    across all groups in a single record, including nested entries.
+
+    Examples:
+    ```python
+    from lobo.replay.adapters import models as lm
+
+    orders = lm.Group("orders", header_size=4,
+        count=lm.UInt(2, 2, byteorder="little"),
+        block_length=lm.UInt(0, 2, byteorder="little"),
+        fields={"id": lm.UInt(0, 8, byteorder="little")})
+    ```
+    """
+    def __new__(cls, /, name: str, *, header_size: int, count: BinaryField, block_length: BinaryField, fields: Mapping[str, BinaryField], offset: int |None = None, groups: Iterable[Group] |None = None, max_count: int = 65535, alignment: int = 1) -> Group: ...
+    @property
+    def data(self, /) -> Any:
+        """
+        Return a detached declaration, including nested group layouts.
+        """
+
+@final
 class Instrument:
     """
     Describe one instrument's symbol, decimal precision, and book policy.
@@ -921,11 +1017,25 @@ class Record:
     The enclosing Binary format supplies the record tag, routing key, and clock.
     
     Args:
-        size: The exact payload size in bytes, excluding the length prefix.
+        size: Exact payload size, excluding the prefix, or None for variable size.
+            Fixed-size declarations retain strict equality checks.
         fields: A dictionary from field names to UInt or Text declarations. Offsets
             are relative to the start of the payload, not to the length prefix.
         actions: Actions to execute in order for this record type. An empty sequence
             can describe a record that affects no book state.
+        block_length: Optional UInt containing the transmitted root block length.
+            The root ends at block_offset + its value; scalar offsets still start
+            at the payload. This skips unknown fixed-block extension bytes.
+        block_offset: Bytes before the root block; requires block_length.
+        groups: Group declarations in wire order. Without block_length the first
+            group follows the last scalar/header field, or its explicit offset.
+        allow_trailing: With size=None, allow uninterpreted bytes after the declared
+            layout. Defaults to False to catch schema mismatches and bad counts.
+
+    Within actions Field reads the decoded object; nested ForEach changes its
+    current item, while Root reads the message object. Variable layouts execute
+    natively through CustomAdapter.start()/wait(), including hosted adapters.
+    CustomAdapter.run() supports fixed-record bulk mappings only.
     
     Raises:
         ValueError: A field extends outside the payload or has an unsupported layout.
@@ -938,7 +1048,7 @@ class Record:
     heartbeat = lm.Record(size=11, fields={"clock": lm.UInt(3, 8)}, actions=())
     ```
     """
-    def __new__(cls, /, *, size: int, fields: Mapping[str, BinaryField], actions: Iterable[Action]) -> Record: ...
+    def __new__(cls, /, *, size: int |None = None, fields: Mapping[str, BinaryField], actions: Iterable[Action], block_length: BinaryField |None = None, block_offset: int = 0, groups: Iterable[Group] |None = None, allow_trailing: bool = False) -> Record: ...
     @property
     def data(self, /) -> Any:
         """
@@ -1345,13 +1455,16 @@ class Text(BinaryField):
     Read UTF-8 text from a fixed range of bytes and trim surrounding whitespace.
     
     Args:
-        offset: The zero-based byte offset from the start of the record payload,
-            excluding its length prefix.
+        offset: Zero-based offset from the record payload (excluding its prefix)
+            or the containing group entry.
         size: The positive number of bytes occupied by the text, including padding.
     
     Raises:
         ValueError: The size is zero or the byte range overflows.
     
+    Decoding is strict UTF-8. Trimming removes Unicode whitespace, including ASCII
+    space padding; it does not remove NUL bytes or translate other encodings.
+
     Examples:
         ```python
         from lobo.replay.adapters import models as lm
@@ -1484,14 +1597,19 @@ class UInt(BinaryField):
     Read an unsigned integer from a fixed range of bytes.
     
     Args:
-        offset: The zero-based offset from the start of the record payload. For
-            Binary.length only, this is the offset in the length prefix and must be zero.
+        offset: Zero-based offset from the containing record payload, group entry,
+            or group dimension header, according to where the field is declared.
+            For Binary.length it is relative to the prefix and must be zero.
         size: The number of bytes occupied by the integer, from one through eight.
         byteorder: "big" for most-significant byte first, or "little" for the reverse.
     
     Raises:
         ValueError: The byte order or size is unsupported.
     
+    Values remain exact through 2**64 - 1. Signed integers, floating point, null
+    sentinels and decimal scales are not inferred. Declare sentinel handling and
+    unit conversions with expressions using the protocol's schema.
+
     Examples:
         ```python
         from lobo.replay.adapters import models as lm

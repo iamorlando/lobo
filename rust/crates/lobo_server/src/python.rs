@@ -55,7 +55,7 @@ pub struct PyServerContext {
 #[pymethods]
 impl PyServerContext {
     #[new]
-    #[pyo3(signature = (web_root, *, host="127.0.0.1", port=8000, price_decimals=0, quantity_decimals=0, queue_capacity=8192, sinks=None, adapters=None))]
+    #[pyo3(signature = (web_root, *, host="127.0.0.1", port=8000, price_decimals=0, quantity_decimals=0, queue_capacity=8192, sinks=None, adapters=None, replay_paused=true, replay_speed=1.0))]
     fn new(
         py: Python<'_>,
         web_root: PathBuf,
@@ -66,6 +66,8 @@ impl PyServerContext {
         queue_capacity: usize,
         sinks: Option<Vec<Py<lobo_context::python::PyGpuSink>>>,
         adapters: Option<Vec<Py<lobo_replay::custom::python::PyCustomAdapter>>>,
+        replay_paused: bool,
+        replay_speed: f64,
     ) -> PyResult<Self> {
         if price_decimals > 9 || quantity_decimals > 18 {
             return Err(PyValueError::new_err("invalid book precision"));
@@ -94,7 +96,12 @@ impl PyServerContext {
             .map_err(PyRuntimeError::new_err)?;
         let adapters = adapters.unwrap_or_default();
         for adapter in &adapters {
-            match adapter.try_borrow_mut(py)?.attach(py, queue_capacity) {
+            match adapter.try_borrow_mut(py)?.attach(
+                py,
+                queue_capacity,
+                replay_paused,
+                replay_speed,
+            ) {
                 Ok(hosted) => server.registry.adapters.write().push(hosted),
                 Err(error) => {
                     for adapter in &adapters {

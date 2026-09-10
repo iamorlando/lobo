@@ -1,16 +1,17 @@
 //! Message definitions, routing, and feed lifecycle shared by custom adapters.
 #[cfg(feature = "native")]
 pub mod binary;
+mod binary_layout;
 mod checksum;
 mod compiled;
 pub mod expression;
-#[cfg(feature = "python")]
-pub mod python;
 #[cfg(all(feature = "jit", not(target_arch = "wasm32")))]
 pub mod jit;
 mod mutation;
 #[cfg(all(feature = "jit", not(target_arch = "wasm32")))]
 mod projection;
+#[cfg(feature = "python")]
+pub mod python;
 pub mod schema;
 #[cfg(all(feature = "native", feature = "polars"))]
 mod table;
@@ -1175,11 +1176,7 @@ impl<O: super::observer::EventSink> Protocol for DefinedProtocol<O> {
             #[cfg(all(feature = "jit", not(target_arch = "wasm32")))]
             let size = framing.length(remaining)?;
             #[cfg(not(all(feature = "jit", not(target_arch = "wasm32"))))]
-            let size = binary.length.number(remaining)? as usize;
-            #[cfg(not(all(feature = "jit", not(target_arch = "wasm32"))))]
-            if size == 0 || size > binary.max_record_size {
-                return Err("Invalid record length".into());
-            }
+            let size = binary.payload_length(binary.length.number(remaining)?)?;
             if remaining.len() < prefix + size {
                 if self.eof {
                     return Err("Truncated record body".into());
@@ -1295,16 +1292,7 @@ impl<O: super::observer::EventSink> Protocol for DefinedProtocol<O> {
                 self.vars.insert("key".into(), route.into());
                 self.vars.insert("clock".into(), timestamp.into());
                 if let Some(record) = binary.records.get(&tag) {
-                    if record.size != size {
-                        return Err(format!("Record {tag} must contain {} bytes", record.size));
-                    }
-                    let object = Value::Object(
-                        record
-                            .fields
-                            .iter()
-                            .map(|(name, field)| field.value(bytes).map(|v| (name.clone(), v)))
-                            .collect::<Result<_, _>>()?,
-                    );
+                    let object = record.decode(bytes, binary.minimum_header())?;
                     if let Some(symbol) = self.routes.get(&route).cloned() {
                         self.set_symbol(state, &symbol);
                     }

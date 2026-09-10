@@ -45,4 +45,23 @@ poetry run python python/examples/itch/server.py \
   --source 'https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/01302020.NASDAQ_ITCH50.gz'
 ```
 
-The source reads and decompresses the session. Server replay advances as fast as input processing allows; it is not paced by the browser's replay-speed control. The completed book remains available while the server runs. Click a depth level to inspect its FIFO queue.
+The source reads and decompresses the session on the host. Replay starts paused.
+Use Play/Pause, speed, Restart, and START AT / Apply in the terminal, or pass
+`--play --speed 10` to start at 10×. `--start-ns 34200000000000` reconstructs through
+09:30:00 in a file with nanoseconds-since-midnight timestamps. Seek uses the file's
+absolute timestamp convention, so epoch-based recordings require epoch nanoseconds.
+
+Python uses the same shared controls: `adapter.play()`, `adapter.pause()`,
+`adapter.set_speed(10)`, `adapter.restart()`, and `adapter.seek(timestamp_ns)`.
+`adapter.playback` reports pause, speed, source clock, seeking, errors, and EOF.
+Seek and restart return after reconstructing from the beginning, retaining pause
+and speed. Seeking earlier than the origin clamps to the origin; seeking beyond
+EOF stops at the final timestamp. EOF freezes playback and leaves the final book
+available. Click a depth level to inspect its FIFO queue.
+
+`GET /api/server-context` advertises a `playbackEndpoint` for each recorded
+adapter. GET that endpoint for state; POST `{"action":"play"}`, `{"action":"pause"}`,
+`{"action":"speed","speed":10}`, `{"action":"restart"}`, or
+`{"action":"seek","timestamp_ns":34200000000000}` to control the same worker.
+These controls are shared by all observers. A partial recording remains PARTIAL;
+playback and reconstruction do not supply a missing opening snapshot.

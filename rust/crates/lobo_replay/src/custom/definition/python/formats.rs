@@ -44,13 +44,18 @@ impl PyFormat {
 /// Read an unsigned integer from a fixed range of bytes.
 ///
 /// Args:
-///     offset: The zero-based offset from the start of the record payload. For
-///         Binary.length only, this is the offset in the length prefix and must be zero.
+///     offset: Zero-based offset from the containing record payload, group entry,
+///         or group dimension header, according to where the field is declared.
+///         For Binary.length it is relative to the prefix and must be zero.
 ///     size: The number of bytes occupied by the integer, from one through eight.
 ///     byteorder: "big" for most-significant byte first, or "little" for the reverse.
 ///
 /// Raises:
 ///     ValueError: The byte order or size is unsupported.
+///
+/// Values remain exact through 2**64 - 1. Signed integers, floating point, null
+/// sentinels and decimal scales are not inferred. Declare sentinel handling and
+/// unit conversions with expressions using the protocol's schema.
 ///
 /// Examples:
 ///     ```python
@@ -78,12 +83,15 @@ impl UInt {
 /// Read UTF-8 text from a fixed range of bytes and trim surrounding whitespace.
 ///
 /// Args:
-///     offset: The zero-based byte offset from the start of the record payload,
-///         excluding its length prefix.
+///     offset: Zero-based offset from the record payload (excluding its prefix)
+///         or the containing group entry.
 ///     size: The positive number of bytes occupied by the text, including padding.
 ///
 /// Raises:
 ///     ValueError: The size is zero or the byte range overflows.
+///
+/// Decoding is strict UTF-8. Trimming removes Unicode whitespace, including ASCII
+/// space padding; it does not remove NUL bytes or translate other encodings.
 ///
 /// Examples:
 ///     ```python
@@ -121,21 +129,28 @@ impl schema::BinaryField {
 #[pymethods]
 impl schema::Record {
     #[new]
-    #[pyo3(signature=(*,size,fields,actions))]
+    #[pyo3(signature=(*,size=None,fields,actions,block_length=None,block_offset=0,groups=None,allow_trailing=false))]
     fn new(
-        size: usize,
+        size: Option<usize>,
         fields: Mapping<String, schema::BinaryField>,
         actions: Iterable<schema::Action>,
+        block_length: Option<PyRef<'_, schema::BinaryField>>,
+        block_offset: usize,
+        groups: Option<Iterable<schema::Group>>,
+        allow_trailing: bool,
     ) -> PyResult<Self> {
         let fields = fields.0;
-        for field in fields.values() {
-            field.validate(size).map_err(error)?;
-        }
-        Ok(Self {
+        let record = Self {
             size,
             fields,
             actions: actions.0,
-        })
+            block_length: block_length.map(|field| field.clone()),
+            block_offset,
+            groups: Iterable::or_empty(groups),
+            allow_trailing,
+        };
+        record.validate_layout(65535, 0).map_err(error)?;
+        Ok(record)
     }
     /// Return the payload size, named fields, and ordered actions as a dictionary.
     ///
@@ -147,10 +162,57 @@ impl schema::Record {
     }
 }
 
+#[pymethods]
+impl schema::Group {
+    #[new]
+    #[pyo3(signature=(name,*,header_size,count,block_length,fields,offset=None,groups=None,max_count=65535,alignment=1))]
+    fn new(
+        name: String,
+        header_size: usize,
+        count: PyRef<'_, schema::BinaryField>,
+        block_length: PyRef<'_, schema::BinaryField>,
+        fields: Mapping<String, schema::BinaryField>,
+        offset: Option<usize>,
+        groups: Option<Iterable<schema::Group>>,
+        max_count: usize,
+        alignment: usize,
+    ) -> PyResult<Self> {
+        let group = Self {
+            name,
+            header_size,
+            count: count.clone(),
+            block_length: block_length.clone(),
+            fields: fields.0,
+            offset,
+            groups: Iterable::or_empty(groups),
+            max_count,
+            alignment,
+        };
+        let record = schema::Record {
+            size: None,
+            fields: Default::default(),
+            actions: vec![],
+            block_length: None,
+            block_offset: 0,
+            groups: vec![group.clone()],
+            allow_trailing: false,
+        };
+        record.validate_layout(65535, 0).map_err(error)?;
+        Ok(group)
+    }
+
+    /// Return a detached declaration, including nested group layouts.
+    #[getter]
+    fn data(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+        export(py, self)
+    }
+}
+
 /// Describe the framing and layouts of a binary message stream.
 ///
 /// Each record starts with a length prefix followed by its payload. The length
-/// counts payload bytes only. All other offsets are relative to the payload.
+/// counts payload bytes by default; length_includes_prefix=True counts the entire
+/// frame, including that prefix. All other offsets remain relative to the payload.
 /// Records whose tags are absent from records are skipped using their length.
 ///
 /// Args:
@@ -162,6 +224,29 @@ impl schema::Record {
 ///         Record objects. A character tag is converted to its Unicode code point.
 ///     max_record_size: The largest accepted payload size, in bytes. Defaults to
 ///         512 and must be between 1 and 65535. This bounds framing buffers.
+///     length_includes_prefix: Set True when the wire length includes its own
+///         bytes. For a two-byte prefix storing 10, True reads an eight-byte
+///         payload; False reads a ten-byte payload. The default is False.
+///
+/// Record fields and groups are decoded in Rust. For binary sources construct
+/// CustomAdapter with mode=lm.FeedMode.Replay. Variable records use start() and
+/// wait(); run() is a fixed-record bulk optimization and rejects them.
+/// key supplies the default instrument route. For messages containing several
+/// instruments, use explicit Book(symbol, ...) actions inside ForEach, with
+/// fields or table lookups to select each entry's instrument. Register.key is
+/// only needed for the default header route. Declare version/schema fields in
+/// Record.fields and use When to guard the applicable layout's actions.
+/// Binary.key and Binary.timestamp are available as Variable("key") and
+/// Variable("clock"); they are not automatically added to the Field object.
+///
+/// Source.file and Source.http supply a continuous stream (gzip is detected for
+/// files). Source.packets supplies byte chunks; chunk boundaries are not message
+/// or capture-envelope boundaries. Every chunk must contain this declared stream.
+/// Capture-file, network, and packet headers are not automatically detected or
+/// stripped. Unknown record tags are skipped, but still need a readable common
+/// tag/key/timestamp header. Binary.timestamp must already be unsigned nanoseconds
+/// on a common time axis for replay scheduling. Converting an action's timestamp
+/// does not change the framing clock used to pace the stream.
 ///
 /// Raises:
 ///     TypeError: A field or record has the wrong declaration type.
@@ -178,12 +263,38 @@ impl schema::Record {
 ///                   records={"H": lm.Record(size=11, fields={}, actions=())})
 ///     protocol = Protocol(wire)
 ///     ```
+///
+///     This complete example decodes two entries from one inclusive-length frame:
+///
+///     ```python
+///     from lobo.replay.adapters import CustomAdapter, Protocol
+///     from lobo.replay.adapters import models as lm, expressions as le
+///
+///     orders = lm.Group("orders", header_size=2,
+///         block_length=lm.UInt(0, 1), count=lm.UInt(1, 1),
+///         fields={"id": lm.UInt(0, 1), "quantity": lm.UInt(1, 1)})
+///     wire = lm.Binary(length=lm.UInt(0, 2, byteorder="little"),
+///         length_includes_prefix=True,
+///         tag=lm.UInt(0, 1), key=lm.UInt(1, 1), timestamp=lm.UInt(2, 1),
+///         records={1: lm.Record(fields={}, groups=[orders], actions=[
+///             lm.Book("XYZ", le.ForEach(le.Field("orders"),
+///                 lm.Add(id=le.Field("id"), side="buy", price=100,
+///                     quantity=le.Field("quantity"))), snapshot=True)])})
+///     # Prefix: total size 11. Payload: tag, key, clock, block size, count,
+///     # then two (id, quantity) entries. The prefix is excluded from offsets.
+///     source = lm.Source.packets([bytes([11, 0, 1, 0, 5, 2, 2, 7, 9, 8, 3])])
+///     with CustomAdapter(Protocol(wire), source, symbol="XYZ",
+///             mode=lm.FeedMode.Replay, instruments=[lm.Instrument("XYZ", 0, 0)]) as feed:
+///         feed.start()
+///         feed.wait()
+///         assert feed.levels("XYZ")[0]["quantity"] == 12
+///     ```
 #[pyclass(extends=PyFormat, frozen, module="lobo.replay.adapters.models")]
 pub struct Binary;
 #[pymethods]
 impl Binary {
     #[new]
-    #[pyo3(signature=(*,length,tag,key,timestamp,records: "dict[int | str, Record]",max_record_size=512))]
+    #[pyo3(signature=(*,length,tag,key,timestamp,records: "dict[int | str, Record]",max_record_size=512,length_includes_prefix=false))]
     fn new(
         length: PyRef<'_, schema::BinaryField>,
         tag: PyRef<'_, schema::BinaryField>,
@@ -191,6 +302,7 @@ impl Binary {
         timestamp: PyRef<'_, schema::BinaryField>,
         records: &Bound<'_, PyDict>,
         max_record_size: usize,
+        length_includes_prefix: bool,
     ) -> PyResult<PyClassInitializer<Self>> {
         let records = records
             .iter()
@@ -219,6 +331,7 @@ impl Binary {
                 timestamp: timestamp.clone(),
                 records,
                 max_record_size,
+                length_includes_prefix,
             }),
         })
         .add_subclass(Self))

@@ -5,6 +5,7 @@ use super::super::super::{
     expression::{Expr, Operator},
     schema::{Action, Definition, Format, Operation},
 };
+use super::storage::*;
 use serde_json::Value;
 use std::collections::BTreeMap;
 
@@ -57,6 +58,7 @@ impl Layout {
                     for name in record.fields.keys() {
                         layout.field(layout.root, name);
                     }
+                    layout.binary_groups(&record.groups, layout.root);
                     layout.actions(&record.actions, layout.root, layout.root)?;
                 }
             }
@@ -76,6 +78,17 @@ impl Layout {
         layout.normalize();
         layout.check_acyclic()?;
         Ok(layout)
+    }
+
+    fn binary_groups(&mut self, groups: &[crate::custom::definition::schema::Group], parent: Id) {
+        for group in groups {
+            let array = self.field(parent, &group.name);
+            let entry = self.element(array);
+            for name in group.fields.keys() {
+                self.field(entry, name);
+            }
+            self.binary_groups(&group.groups, entry);
+        }
     }
 
     fn node(&mut self) -> Id {
@@ -736,5 +749,78 @@ impl Layout {
             self.require(expr, item, root, kind)?;
         }
         Ok(())
+    }
+}
+
+impl Layout {
+    /// Project native values into the same slots used by generated actions.
+    pub(super) fn project(
+        &self,
+        value: &Value,
+        shape: Id,
+        arena: &mut Arena,
+        missing_address: usize,
+    ) -> Result<usize, String> {
+        let missing = unsafe { *(missing_address as *const Record) };
+        let mut record = Record {
+            present: 1,
+            ..missing
+        };
+        match value {
+            Value::Null => {}
+            Value::Bool(value) => {
+                record.kind = BOOL;
+                record.number.low = u64::from(*value);
+            }
+            Value::Number(value) => {
+                record.kind = NUMBER;
+                record.number(Number::parse(value.as_str().as_bytes()).map_err(str::to_owned)?);
+                if record.valid & VALID_UNSIGNED != 0 {
+                    record.identifier =
+                        lobo_primitives::uuid::Uuid::from_u128(u128::from(record.unsigned));
+                    record.valid |= VALID_ID;
+                }
+                record.text = arena.bytes(value.as_str().as_bytes());
+            }
+            Value::String(value) => {
+                record.kind = TEXT;
+                record.text = arena.bytes(value.as_bytes());
+                record.text_projection::<true, true, true>();
+            }
+            Value::Array(values) => {
+                record.kind = ARRAY;
+                let child = self.shapes[shape]
+                    .element
+                    .ok_or("Array constant has no row layout")?;
+                let rows = arena.allocate::<usize>(values.len());
+                for (i, value) in values.iter().enumerate() {
+                    let value = self.project(value, child, arena, missing_address)?;
+                    unsafe {
+                        rows.add(i).write(value);
+                    }
+                }
+                record.elements = Span {
+                    address: rows as usize,
+                    length: values.len(),
+                };
+            }
+            Value::Object(values) => {
+                record.kind = OBJECT;
+                let shape = self.shapes[shape].clone();
+                let fields = arena.allocate::<usize>(shape.fields.len());
+                for (i, (name, child)) in shape.fields.iter().enumerate() {
+                    let value = match values.get(name) {
+                        Some(value) => self.project(value, *child, arena, missing_address)?,
+                        None => missing_address,
+                    };
+                    unsafe {
+                        fields.add(i).write(value);
+                    }
+                }
+                record.fields = fields as usize;
+                record.object_length = values.len() as u64;
+            }
+        }
+        Ok(arena.put(record) as usize)
     }
 }
