@@ -15,9 +15,12 @@ Even `lobo-rs`'s `full` feature does not enable PyO3 or Python bindings.
 
 ## Check a release
 
-Use the repository's tested Rust toolchain (currently Rust/Cargo 1.96.1).
+Use the Rust release workflow's toolchain (currently Rust/Cargo 1.97.0).
 Native workspace publishing requires Cargo 1.90 or later; no release plugin
 or per-crate publishing loop is necessary.
+Cargo 1.96.1 has a workspace publishing bug that can report a false deadlock
+while uploaded dependencies are still awaiting registry confirmation. The
+[upstream fix](https://github.com/rust-lang/cargo/pull/17071) shipped in 1.97.
 
 ```sh
 make check-lobo
@@ -97,10 +100,18 @@ Manual workflow runs only check by default. To publish an existing release tag
 after rerunning its checks:
 
 ```sh
-gh workflow run rust-package.yml --ref rust-v0.1.0 -f publish=true
+gh workflow run rust-package.yml --ref master -f release_tag=rust-v0.1.0 -f publish=true
 ```
 
-Branch runs cannot publish, and publication starts only after all checks pass.
+This uses the workflow from `master` while checking and publishing the source
+at `rust-v0.1.0`. Commit and push any workflow fix to `master` first. GitHub's
+**Re-run jobs** uses the original workflow commit, so it will not pick up a
+toolchain fix added after the release was tagged. The tag and package versions
+do not need to change to resume a partial release.
+
+The publish job checks out the exact commit that passed the check job. Ordinary
+branch runs cannot publish; manual publication requires an existing release tag
+and `publish=true`. Publication starts only after all checks pass.
 `lobo_py`, `lobo_wasm`, and `lobo_replay_tests` are excluded automatically by
 their `publish = false` metadata.
 
