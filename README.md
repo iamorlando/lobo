@@ -1,6 +1,6 @@
 # LOBO
 
-[![GitHub](https://img.shields.io/badge/GitHub-source-181717?style=flat-square&logo=github)](https://github.com/iamorlando/loblib)
+[![GitHub](https://img.shields.io/badge/GitHub-source-181717?style=flat-square&logo=github)](https://github.com/iamorlando/lobo)
 [![Python 3.11–3.14](https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB?style=flat-square&logo=python&logoColor=white)](docs/packaging.md)
 [![Rust](https://img.shields.io/badge/Rust-2024-DEA584?style=flat-square&logo=rust&logoColor=white)](rust/crates/lobo/Cargo.toml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-A3E635?style=flat-square)](LICENSE-MIT.md)
@@ -46,7 +46,7 @@ Browse the [Python example adapters](python/examples/README.md) and [adapter ref
 You can also use the [agent skill](agents/README.md) to have an agent build one for you:
 
 ```sh
-npx skills add iamorlando/loblib --skill lobo-adapter --copy
+npx skills add iamorlando/lobo --skill lobo-adapter --copy
 ```
 Then you can try prompt like this:
 ```text

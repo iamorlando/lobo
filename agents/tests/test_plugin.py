@@ -72,7 +72,7 @@ class SetupTests(unittest.TestCase):
             helper.validate_metadata(metadata("boroivanov/lobo"))
         self.assertEqual(helper.validate_metadata(metadata()), "iamorlando/lobo")
         self.assertEqual(
-            helper.validate_metadata(metadata("iamorlando/loblib")), "iamorlando/loblib"
+            helper.validate_metadata(metadata("iamorlando/lobo")), "iamorlando/lobo"
         )
 
     def test_mcp_defaults_to_existing_tools_without_a_vendor_cli(self):

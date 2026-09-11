@@ -1,4 +1,4 @@
-> Bundled from `agents/references/hosted-adapters.md` in https://github.com/iamorlando/loblib.
+> Bundled from `agents/references/hosted-adapters.md` in https://github.com/iamorlando/lobo.
 > This content is included in the installed skill; no checkout or download is needed.
 > Check the installed wheel's public `help()` for version-specific signatures.
 

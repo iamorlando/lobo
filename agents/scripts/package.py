@@ -15,7 +15,7 @@ REPO = ROOT.parent
 SKILLS = REPO / "skills"
 PLUGIN = ROOT / "plugins" / "lobo-adapters"
 VERSION = "0.2.0"
-REPOSITORY = "https://github.com/iamorlando/loblib"
+REPOSITORY = "https://github.com/iamorlando/lobo"
 SKILL_NAMES = ("lobo-adapter", "lobo-adapter-tests")
 
 

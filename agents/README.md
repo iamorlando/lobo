@@ -21,14 +21,14 @@ After these files are published to the GitHub repository, install from any
 consumer project:
 
 ```sh
-npx skills add iamorlando/loblib --skill lobo-adapter lobo-adapter-tests --copy
+npx skills add iamorlando/lobo --skill lobo-adapter lobo-adapter-tests --copy
 ```
 
 The [Vercel skills CLI](https://skills.sh/docs/cli) prompts for target agents.
 Use `--global` for all projects, or select agents explicitly, for example:
 
 ```sh
-npx skills add iamorlando/loblib --skill lobo-adapter lobo-adapter-tests --agent claude-code cursor gemini-cli --copy
+npx skills add iamorlando/lobo --skill lobo-adapter lobo-adapter-tests --agent claude-code cursor gemini-cli --copy
 ```
 
 Either skill can be installed alone. The CLI discovers the root `skills/`
@@ -68,7 +68,7 @@ python /path/to/installed/skill/scripts/lobo_agent.py setup --package /path/to/p
 Omit `--package` when the intended distribution is available from the configured
 package index. The helper checks publisher metadata before installing a downloaded
 wheel; a similarly named distribution is rejected. Both the publisher's legacy
-`iamorlando/lobo` and current `iamorlando/loblib` metadata are accepted. Use
+`iamorlando/lobo` and current `iamorlando/lobo` metadata are accepted. Use
 `--distribution` for a renamed distribution and `--venv` for another environment.
 The helper currently creates a CPython 3.14 environment (using `uv` if needed) and
 prints the interpreter path. An existing compatible environment can be used

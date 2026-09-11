@@ -22,7 +22,7 @@ from urllib.error import HTTPError
 from urllib.parse import quote, urlsplit
 from urllib.request import Request, urlopen
 
-REPOSITORIES = {"iamorlando/lobo", "iamorlando/loblib"}
+REPOSITORIES = {"iamorlando/lobo", "iamorlando/lobo"}
 CONTEXT7 = {"type": "http", "url": "https://mcp.context7.com/mcp"}
 PLAYWRIGHT = {
     "command": "npx",
