@@ -5,9 +5,6 @@ adapters, event aggregation, and a native REST order API. The `lobo-rs` package
 exposes the `lobo` library. It is the public entry point; its modules re-export
 the implementation crates.
 
-## Add to your project
-
-After publication on crates.io:
 
 ```sh
 cargo add lobo-rs --rename lobo
@@ -18,11 +15,6 @@ cargo add lobo-rs --rename lobo
 lobo = { package = "lobo-rs", version = "0.1" }
 ```
 
-Before publication, use the same package from Git:
-
-```sh
-cargo add lobo-rs --rename lobo --git https://github.com/iamorlando/lobo.git
-```
 
 The default `full` feature enables all native Rust functionality: replay,
 ITCH/Kraken/Bitfinex adapters, native transports, JSON definitions, JIT,
