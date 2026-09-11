@@ -1,5 +1,5 @@
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/iamorlando/lobo"
@@ -23,16 +23,16 @@ default-members = [
 ]
 
 [workspace.dependencies]
-lobo_primitives = { version = "0.1.0", path = "rust/crates/lobo_primitives", default-features = false }
-lobo_models = { version = "0.1.0", path = "rust/crates/lobo_models", default-features = false }
-lobo_books = { version = "0.1.0", path = "rust/crates/lobo_books", default-features = false }
-lobo_storage = { version = "0.1.0", path = "rust/crates/lobo_storage", default-features = false }
-lobo_adapters = { version = "0.1.0", path = "rust/crates/lobo_adapters", default-features = false }
-lobo_replay = { version = "0.1.0", path = "rust/crates/lobo_replay", default-features = false }
-lobo_context = { version = "0.1.0", path = "rust/crates/lobo_context", default-features = false }
-lobo_events = { version = "0.1.0", path = "rust/crates/lobo_events", default-features = false }
-lobo_batchers = { version = "0.1.0", path = "rust/crates/lobo_batchers", default-features = false }
-lobo_server = { version = "0.1.0", path = "rust/crates/lobo_server", default-features = false }
+lobo_primitives = { version = "0.1.1", path = "rust/crates/lobo_primitives", default-features = false }
+lobo_models = { version = "0.1.1", path = "rust/crates/lobo_models", default-features = false }
+lobo_books = { version = "0.1.1", path = "rust/crates/lobo_books", default-features = false }
+lobo_storage = { version = "0.1.1", path = "rust/crates/lobo_storage", default-features = false }
+lobo_adapters = { version = "0.1.1", path = "rust/crates/lobo_adapters", default-features = false }
+lobo_replay = { version = "0.1.1", path = "rust/crates/lobo_replay", default-features = false }
+lobo_context = { version = "0.1.1", path = "rust/crates/lobo_context", default-features = false }
+lobo_events = { version = "0.1.1", path = "rust/crates/lobo_events", default-features = false }
+lobo_batchers = { version = "0.1.1", path = "rust/crates/lobo_batchers", default-features = false }
+lobo_server = { version = "0.1.1", path = "rust/crates/lobo_server", default-features = false }
 
 rand = "0.10.2"
 schemars = { version = "1.2.1", features = ["uuid1"] }

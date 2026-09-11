@@ -122,7 +122,7 @@ To try it manually in any compatible Python environment, install the wheel
 printed by the build script, then open its terminal:
 
 ```sh
-python -m pip install /path/to/pylobo-0.1.0-cp311-abi3-PLATFORM.whl
+python -m pip install /path/to/pylobo-0.1.1-cp311-abi3-PLATFORM.whl
 lobo serve --port 0 --book AAPL --open
 ```
 
@@ -207,12 +207,19 @@ The first successful upload creates the PyPI project and activates the pending
 publisher. See the [PyPI Trusted Publishing guide](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/).
 
 Commit and push the release changes, then push a tag matching `project.version`
-in `pyproject.toml`. For version `0.1.0`:
+in `pyproject.toml`. For version `0.1.1`:
 
 ```sh
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.1.1
+git push origin v0.1.1
 ```
+
+The same `v0.1.1` tag also triggers the Rust release. To publish both together,
+set the Python project version, Rust workspace version, and all local workspace
+dependency versions to `0.1.1`, update `Cargo.lock`, and commit before tagging.
+Use a fresh tag and version for each release; published versions cannot be
+overwritten by moving an old tag. A separate `rust-v0.1.1` tag is unnecessary
+for a combined release.
 
 The workflow rejects a mismatched tag before building. Once the source archive
 and all six wheel jobs succeed, the publish job downloads their audited

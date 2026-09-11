@@ -1874,7 +1874,7 @@ checksum = "11d3d7f243d5c5a8b9bb5d6dd2b1602c0cb0b9db1621bafc7ed66e35ff9fe092"
 
 [[package]]
 name = "lobo-rs"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "lobo_adapters",
  "lobo_batchers",
@@ -1890,7 +1890,7 @@ dependencies = [
 
 [[package]]
 name = "lobo_adapters"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -1914,7 +1914,7 @@ dependencies = [
 
 [[package]]
 name = "lobo_batchers"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "arrow-array",
  "arrow-data",
@@ -1932,7 +1932,7 @@ dependencies = [
 
 [[package]]
 name = "lobo_books"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "criterion",
  "lobo_events",
@@ -1947,7 +1947,7 @@ dependencies = [
 
 [[package]]
 name = "lobo_context"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "arrow-array",
  "arrow-ipc",
@@ -1962,7 +1962,7 @@ dependencies = [
 
 [[package]]
 name = "lobo_events"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "lobo_models",
  "lobo_primitives",
@@ -1971,7 +1971,7 @@ dependencies = [
 
 [[package]]
 name = "lobo_models"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "lobo_primitives",
  "pyo3",
@@ -1981,7 +1981,7 @@ dependencies = [
 
 [[package]]
 name = "lobo_primitives"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "pyo3",
@@ -1991,7 +1991,7 @@ dependencies = [
 
 [[package]]
 name = "lobo_py"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "cfg-if",
  "lobo_adapters",
@@ -2009,7 +2009,7 @@ dependencies = [
 
 [[package]]
 name = "lobo_replay"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "chrono-tz",
@@ -2042,7 +2042,7 @@ dependencies = [
 
 [[package]]
 name = "lobo_replay_tests"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "crc32fast",
  "criterion",
@@ -2056,7 +2056,7 @@ dependencies = [
 
 [[package]]
 name = "lobo_server"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "axum",
  "futures-util",
@@ -2082,7 +2082,7 @@ dependencies = [
 
 [[package]]
 name = "lobo_storage"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "crc32fast",
  "itoa",
@@ -2098,7 +2098,7 @@ dependencies = [
 
 [[package]]
 name = "lobo_wasm"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "arrow-array",
  "arrow-schema",
