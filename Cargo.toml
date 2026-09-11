@@ -2,6 +2,7 @@
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
+repository = "https://github.com/iamorlando/lobo"
 
 [workspace]
 resolver = "3"
@@ -14,6 +15,7 @@ default-members = [
     "rust/crates/lobo_storage",
     "rust/crates/lobo_adapters",
     "rust/crates/lobo_replay",
+    "rust/crates/lobo_replay_tests",
     "rust/crates/lobo_context",
     "rust/crates/lobo_events",
     "rust/crates/lobo_batchers",
@@ -29,16 +31,18 @@ lobo_adapters = { version = "0.1.0", path = "rust/crates/lobo_adapters", default
 lobo_replay = { version = "0.1.0", path = "rust/crates/lobo_replay", default-features = false }
 lobo_context = { version = "0.1.0", path = "rust/crates/lobo_context", default-features = false }
 lobo_events = { version = "0.1.0", path = "rust/crates/lobo_events", default-features = false }
+lobo_batchers = { version = "0.1.0", path = "rust/crates/lobo_batchers", default-features = false }
 lobo_server = { version = "0.1.0", path = "rust/crates/lobo_server", default-features = false }
 
 rand = "0.10.2"
 schemars = { version = "1.2.1", features = ["uuid1"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-# The pyo3-polars tag is coupled to the Python Polars release. Keep every
-# workspace crate on this one source/version pair.
-polars = { git = "https://github.com/pola-rs/polars", tag = "py-1.43.2", version = "0.54.4", default-features = false }
-pyo3-polars = { git = "https://github.com/pola-rs/polars", tag = "py-1.43.2", version = "0.27.0", default-features = false }
+# The Git tag is coupled to Python Polars 1.43.2 (Polars 0.54.4 and a
+# PyO3-0.29 binding still versioned 0.27). On crates.io, PyO3 0.29 requires
+# pyo3-polars 0.28 / Polars 0.55. Support both tested source/version pairs.
+polars = { git = "https://github.com/pola-rs/polars", tag = "py-1.43.2", version = ">=0.54.4, <0.56", default-features = false }
+pyo3-polars = { git = "https://github.com/pola-rs/polars", tag = "py-1.43.2", version = ">=0.27, <0.29", default-features = false }
 [workspace.lints.rust]
 
 [workspace.lints.clippy]

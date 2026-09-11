@@ -57,11 +57,25 @@ build me the cme adapter for lobo, using the lobo adapter skill. then use a samp
 
 ## Use LOBO in Rust
 
-Add LOBO to your Rust project directly from this repository:
+The Rust library is named `lobo`; its crates.io package name is `lobo-rs`.
+Until the first registry release, add it from this repository:
 
 ```sh
-cargo add lobo --git https://github.com/iamorlando/loblib.git
+cargo add lobo-rs --rename lobo --git https://github.com/iamorlando/lobo.git
 ```
+
+After publication, use `cargo add lobo-rs --rename lobo`, or:
+
+```toml
+[dependencies]
+lobo = { package = "lobo-rs", version = "0.1" }
+```
+
+All native Rust features are enabled by default, without Python bindings.
+Use `default-features = false` for core order books, then select optional
+features such as `replay`, `kraken`, `polars`, or `server` as needed.
+See the [Rust API and examples](rust/crates/lobo/README.md) and
+[workspace release guide](docs/rust-packaging.md).
 
 ## LOBO Is Highly Configurable
 Lobo relies heavily on static dispatch, deferring nearly all configuration level control flow to compile-time resolution of generic types. To achieve this LOBO's order state is held in a single [generational slotted arena](rust/crates/lobo_storage/src/arena/arenav1.rs#L71), while all data structures beyond it operate only on [arena keys](rust/crates/lobo_storage/src/arena/arenav1.rs#L37). This enables full configurability of the [sorting](rust/crates/lobo_storage/src/price_sorting.rs#L244) and [storage algorithms](rust/crates/lobo_storage/src/price_level/mod.rs), allowing LOBO to implement the optimal ones for the given use case.

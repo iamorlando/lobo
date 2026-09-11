@@ -1,5 +1,5 @@
 #![cfg(all(feature = "json", feature = "native"))]
-#[path = "support/definitions.rs"]
+#[path = "../../lobo_replay/tests/support/definitions.rs"]
 mod definitions;
 mod itch_file {
     use lobo_replay::custom::{definition::binary::FileFormat, source::CustomReplaySource};
@@ -34,7 +34,7 @@ type Level = IntrusivePriceLevel<CompressedPrice, DoNotUpdateHiddenQuantity>;
 type Context =
     ReplayContext<Level, SortedVectorPriceSorting, DoNotUpdateUserMap, DoNotUpdateHiddenQuantity>;
 
-#[path = "support/itch.rs"]
+#[path = "../../lobo_replay/tests/support/itch.rs"]
 mod fixture;
 use fixture::file;
 #[test]

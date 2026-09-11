@@ -1,0 +1,112 @@
+name: Rust library
+
+on:
+  pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust/**"
+      - "scripts/check_lobo.py"
+      - "scripts/publish_rust.py"
+      - "packaging_tests/test_publish_rust.py"
+      - ".github/workflows/rust-package.yml"
+  push:
+    branches: [main, master]
+    tags: ["rust-v*", "v*"]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust/**"
+      - "scripts/check_lobo.py"
+      - "scripts/publish_rust.py"
+      - "packaging_tests/test_publish_rust.py"
+      - ".github/workflows/rust-package.yml"
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish the selected release tag after checks pass"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rust-library-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
+env:
+  CARGO_BUILD_JOBS: 2
+  CARGO_PROFILE_DEV_DEBUG: 0
+  CARGO_PROFILE_TEST_DEBUG: 0
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Rust
+        run: |
+          rustup toolchain install 1.96.1 --profile minimal
+          rustup default 1.96.1
+      - name: Test release validation and retry behavior
+        run: python3 -m unittest discover -s packaging_tests -p test_publish_rust.py
+      - name: Verify release tag and workspace versions
+        if: github.ref_type == 'tag' || inputs.publish
+        run: |
+          if [ "$GITHUB_REF_TYPE" != tag ]; then
+            echo "::error::Publishing requires a rust-vX.Y.Z or vX.Y.Z tag."
+            exit 1
+          fi
+          python3 scripts/publish_rust.py --tag "$GITHUB_REF_NAME" --check
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: rust-library-${{ runner.os }}-1.96.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust/**/Cargo.toml') }}
+          restore-keys: rust-library-${{ runner.os }}-1.96.1-
+      - name: Check API, feature isolation, examples, and docs
+        run: python3 scripts/check_lobo.py
+      - name: Verify registry packages without publishing
+        run: cargo publish --workspace --exclude lobo_py --exclude lobo_wasm --exclude lobo_replay_tests --dry-run
+
+  publish:
+    name: Publish Rust workspace to crates.io
+    needs: check
+    if: >-
+      github.repository == 'iamorlando/lobo' &&
+      github.ref_type == 'tag' &&
+      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment:
+      name: cargo
+      url: https://crates.io/crates/lobo-rs
+    concurrency:
+      group: crates-io-lobo
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Rust
+        run: |
+          rustup toolchain install 1.96.1 --profile minimal
+          rustup default 1.96.1
+      - uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: rust-library-${{ runner.os }}-1.96.1-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'rust/**/Cargo.toml') }}
+          restore-keys: rust-library-${{ runner.os }}-1.96.1-
+      - name: Publish unpublished workspace versions
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: python3 scripts/publish_rust.py --tag "$GITHUB_REF_NAME" --publish

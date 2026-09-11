@@ -3,12 +3,13 @@ name = "lobo_server"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
 description = "Native order API and hosted order-book terminal"
 
 [dependencies]
 lobo_books = { workspace = true }
 lobo_replay = { workspace = true, features = ["native", "json", "jit"] }
-lobo_batchers = { path = "../lobo_batchers" }
+lobo_batchers = { workspace = true }
 lobo_context = { workspace = true, optional = true }
 lobo_models = { workspace = true, features = ["server-api"] }
 lobo_primitives = { workspace = true }

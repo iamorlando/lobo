@@ -1,19 +1,16 @@
-
 [package]
-name = "lobo"
-
-# authors = { workspace = true }
-# description = { workspace = true }
-version = { workspace = true }
-edition = { workspace = true }
-# readme = { workspace = true }
-# repository = { workspace = true }
-# keywords = { workspace = true }
-# categories = { workspace = true }
-license = { workspace = true }
+name = "lobo-rs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Configurable limit order books, market-data replay, adapters, and streaming outputs"
+readme = "README.md"
+keywords = ["orderbook", "market-data", "replay", "trading"]
+categories = ["data-structures", "simulation"]
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+name = "lobo"
 
 [lints]
 workspace = true
@@ -23,30 +20,44 @@ lobo_primitives = { workspace = true }
 lobo_models = { workspace = true }
 lobo_books = { workspace = true }
 lobo_storage = { workspace = true }
-lobo_adapters = { workspace = true }
-lobo_replay = { workspace = true }
-lobo_context = { workspace = true }
 lobo_events = { workspace = true }
+lobo_adapters = { workspace = true, optional = true }
+lobo_replay = { workspace = true, optional = true }
+lobo_context = { workspace = true, optional = true }
+lobo_batchers = { workspace = true, optional = true }
+lobo_server = { workspace = true, optional = true }
 
 [features]
-default = []
-polars = [
-    "lobo_adapters/polars",
-    "lobo_books/polars",
-    "lobo_replay/polars",
-    "lobo_storage/polars",
-]
+# The complete native Rust library is the default. Python bindings live in lobo_py.
+default = ["full"]
+full = ["itch", "kraken", "bitfinex", "native", "jit", "concurrent", "polars", "server", "feather", "gpu"]
 
-python = [
-    "lobo_models/python",
-    "lobo_primitives/python",
-    "lobo_storage/python",
-    "lobo_books/python",
+batchers = ["dep:lobo_batchers"]
+context = ["dep:lobo_context", "batchers"]
+replay = ["dep:lobo_replay", "context"]
+adapters = ["dep:lobo_adapters", "replay"]
+itch = ["adapters", "lobo_adapters/itchy"]
+kraken = ["adapters", "lobo_adapters/kraken"]
+bitfinex = ["adapters", "lobo_adapters/bitfinex"]
+native = ["replay", "lobo_replay/native"]
+json = ["replay", "order-api", "lobo_replay/json"]
+order-api = ["replay", "lobo_replay/order-api"]
+jit = ["json", "lobo_replay/jit"]
+concurrent = ["replay", "lobo_replay/concurrent"]
+polars = [
+    "lobo_books/polars",
+    "lobo_storage/polars",
+    "lobo_adapters?/polars",
+    "lobo_replay?/polars",
 ]
-python-polars = [
-    "python",
-    "polars",
-    "lobo_adapters/python-polars",
-    "lobo_books/python-polars",
-    "lobo_storage/python-polars",
-]
+server = ["dep:lobo_server", "native", "jit"]
+arrow = ["batchers", "lobo_batchers/arrow"]
+feather = ["arrow", "lobo_batchers/feather"]
+gpu = ["arrow", "lobo_batchers/wgpu"]
+
+[package.metadata.docs.rs]
+all-features = true
+
+[[example]]
+name = "replay"
+required-features = ["replay"]

@@ -3,6 +3,8 @@ name = "lobo_adapters"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
+description = "Built-in ITCH, Kraken, and Bitfinex market-data adapters for LOBO"
 
 [dependencies]
 lobo_context = { workspace = true }
@@ -46,7 +48,7 @@ python-polars = [
 
 [dev-dependencies]
 crc32fast = "1.5"
-lobo_batchers = { path = "../lobo_batchers", default-features = false }
+lobo_batchers = { workspace = true }
 lobo_context = { workspace = true }
 tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros", "time"] }
 criterion = "0.8.2"

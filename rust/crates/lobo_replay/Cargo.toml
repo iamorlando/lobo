@@ -3,9 +3,11 @@ name = "lobo_replay"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
+description = "Market-data replay, custom adapters, and simulation for LOBO"
 
 [dependencies]
-lobo_batchers = { path = "../lobo_batchers", default-features = false }
+lobo_batchers = { workspace = true }
 lobo_context = { workspace = true }
 lobo_events = { workspace = true }
 
@@ -44,8 +46,6 @@ native = ["dep:chrono", "dep:chrono-tz", "dep:serde", "dep:flate2", "dep:tokio",
 json = ["dep:serde_json", "dep:serde", "order-api"]
 order-api = ["lobo_models/server-api"]
 polars = ["dep:polars", "polars/dtype-time", "polars/temporal"]
-# Enable the reference adapter's row conversion only for parity validation.
-test-polars = ["polars", "lobo_adapters/polars"]
 concurrent = ["dep:rayon"]
 
 
@@ -53,15 +53,7 @@ concurrent = ["dep:rayon"]
 workspace = true
 
 [dev-dependencies]
-itchy = "0.3.4"
 chrono-tz = "0.10.4"
 serde_json = { version = "1.0", features = ["arbitrary_precision"] }
 crc32fast = "1.5"
 chrono = "0.4.45"
-criterion = "0.8.2"
-lobo_adapters = { workspace = true, features = ["itchy", "kraken", "bitfinex", "server"] }
-
-[[bench]]
-name = "custom_adapters"
-harness = false
-required-features = ["json", "order-api"]

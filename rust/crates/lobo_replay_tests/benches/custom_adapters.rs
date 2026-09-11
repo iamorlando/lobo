@@ -1,7 +1,7 @@
 //! Protocol parsing, book mutations, and publication.
 //! --paired alternates execution order in adjacent timing blocks to distinguish
 //! implementation overhead from machine load/frequency changes between cases.
-#[path = "../tests/support/definitions.rs"]
+#[path = "../../lobo_replay/tests/support/definitions.rs"]
 mod examples;
 use criterion::{BenchmarkId, Criterion, Throughput};
 use lobo_replay::custom::MarketDataAdapter;

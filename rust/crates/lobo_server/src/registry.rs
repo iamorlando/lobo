@@ -184,6 +184,7 @@ macro_rules! dispatch_registered {
         lobo_storage::book_policy_matrix!(dispatch_registered_matrix, $value, $book, $call)
     }};
 }
+#[cfg(feature = "python")]
 pub(crate) use dispatch_registered;
 impl RegisteredBooks {
     pub fn info(&self) -> &BookInfo {

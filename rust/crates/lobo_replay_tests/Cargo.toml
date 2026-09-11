@@ -1,0 +1,35 @@
+[package]
+name = "lobo_replay_tests"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Repository-only replay and adapter comparison tests"
+
+[lints]
+workspace = true
+
+[features]
+default = ["json", "native", "order-api"]
+json = ["lobo_replay/json"]
+native = ["lobo_replay/native"]
+order-api = ["lobo_replay/order-api"]
+jit = ["json", "lobo_replay/jit"]
+concurrent = ["lobo_replay/concurrent"]
+polars = ["lobo_replay/polars"]
+test-polars = ["polars", "lobo_adapters/polars"]
+
+[dev-dependencies]
+lobo_adapters = { workspace = true, features = ["itchy", "kraken", "bitfinex", "server"] }
+lobo_models = { workspace = true }
+lobo_primitives = { workspace = true }
+lobo_replay = { workspace = true }
+lobo_storage = { workspace = true }
+serde_json = { version = "1.0", features = ["arbitrary_precision"] }
+criterion = "0.8.2"
+crc32fast = "1.5"
+
+[[bench]]
+name = "custom_adapters"
+harness = false
+required-features = ["json", "order-api"]

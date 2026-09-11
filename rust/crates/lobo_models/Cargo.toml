@@ -3,6 +3,8 @@ name = "lobo_models"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
+description = "Order types, execution reports, and book policies for LOBO"
 
 [lints]
 workspace = true

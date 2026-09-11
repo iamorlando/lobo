@@ -1,5 +1,5 @@
 #![cfg(all(feature = "json", feature = "order-api"))]
-#[path = "support/definitions.rs"]
+#[path = "../../lobo_replay/tests/support/definitions.rs"]
 mod examples;
 use lobo_adapters::adapter::MarketDataAdapter as Original;
 use lobo_models::{
@@ -10,7 +10,7 @@ use lobo_primitives::{Price64, uuid::Uuid};
 use lobo_replay::custom::MarketDataAdapter;
 use serde_json::{Value, json};
 
-#[path = "support/observe.rs"]
+#[path = "../../lobo_replay/tests/support/observe.rs"]
 mod observe;
 use observe::market as state;
 struct Pair {

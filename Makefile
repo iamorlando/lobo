@@ -1,5 +1,6 @@
 
 CARGO_TARGET_DIR ?= $(CURDIR)/rust/target
+RUST_PUBLISH_SCOPE = --workspace --exclude lobo_py --exclude lobo_wasm --exclude lobo_replay_tests
 RUST_SCOPE = --workspace --exclude lobo_py --no-default-features
 BENCH_SCOPE = -p lobo_books --bench simulation --no-default-features
 PYTHON_TESTS = python/tests/lobo python/tests/benchmarks
@@ -66,6 +67,19 @@ build: build-rust py
 
 build-rust:
 	CARGO_TARGET_DIR="$(CARGO_TARGET_DIR)" cargo build $(RUST_SCOPE)
+
+.PHONY: check-lobo publish-rust-check publish-rust
+
+# Test the public crate and each independently selectable feature.
+check-lobo:
+	CARGO_TARGET_DIR="$(CARGO_TARGET_DIR)" python3 scripts/check_lobo.py
+
+# Cargo publishes workspace dependencies in order (Cargo 1.90+).
+publish-rust-check:
+	CARGO_TARGET_DIR="$(CARGO_TARGET_DIR)" cargo publish $(RUST_PUBLISH_SCOPE) --dry-run
+
+publish-rust:
+	CARGO_TARGET_DIR="$(CARGO_TARGET_DIR)" cargo publish $(RUST_PUBLISH_SCOPE)
 
 test: coverage
 

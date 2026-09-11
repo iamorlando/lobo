@@ -3,6 +3,8 @@ name = "lobo_batchers"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
+description = "LOBO event aggregation with Arrow, Feather, and GPU outputs"
 
 [lints]
 workspace = true
