@@ -4,7 +4,8 @@ The release artifacts are a `pylobo` source distribution (`.tar.gz`) and native
 CPython stable-ABI wheels (`.whl`). A `cp311-abi3` wheel supports compatible
 CPython versions from 3.11 onward on its target OS and architecture; it is not
 tied to the Python minor version that built it. The distribution is installed
-with `pip install pylobo`; the Python import and CLI are both named `lobo`.
+with `pip install pylobo`; the library and CLI are named `lobo`. A package-named
+entry point also lets `uvx pylobo demo` launch the same CLI.
 This workflow builds locally and in GitHub Actions, and publishes version-tag
 releases to PyPI after all platform builds and tests pass.
 
@@ -15,8 +16,38 @@ releases to PyPI after all platform builds and tests pass.
   native Polars conversions.
 - The Python public modules, generated type stubs, and `py.typed` marker.
 - The production static Next.js terminal, local fonts, and WebAssembly module
-  under `lobo/_web`. Rust serves these files; there is no Node server at runtime.
-- `lobo serve`, `lobo web --server URL`, and `python -m lobo` entry points.
+  under `lobo/_web`. The local host serves these files without Node.js at runtime.
+- `lobo serve`, `lobo web --server URL`, `lobo demo`, and `python -m lobo`
+  entry points.
+
+## Run the demo locally
+
+```sh
+uvx pylobo demo
+```
+
+This runs the existing web demo on localhost and opens it in your default
+browser. It serves the bundled app with its normal Nasdaq streaming, live
+exchange feeds, file picker, book scope, playback, and chart controls. The
+app keeps its existing defaults, including AAPL as the initial Nasdaq scope.
+
+The launcher chooses a free local port. Use `--port 8000` to choose one or
+`--no-open` to print the URL without opening a browser. Ctrl-C stops the local
+host. Set `LOBO_ITCH_PATH` to supply the app's repository-file source; browser
+file selection also works as usual. Streaming requires internet access, and
+rendering requires WebGPU. No Node.js server or separate demo UI is needed.
+
+In a development checkout, run `poetry run lobo demo`.
+To test an unreleased wheel with uv:
+
+```sh
+uvx --from /path/to/pylobo-VERSION-cp311-abi3-PLATFORM.whl pylobo demo
+```
+
+The short `uvx pylobo demo` command uses the published PyPI release; changes
+in a checkout become available there after the next Python package release.
+
+## Runtime requirements
 
 Runtime dependencies are Polars 1.43.2 and Windows timezone data. Keep the Python
 Polars pin aligned with `pyo3-polars` and the Polars tag in `Cargo.toml`.

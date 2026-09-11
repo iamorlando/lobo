@@ -32,10 +32,12 @@ def test_wheel_metadata_and_assets() -> None:
     assert any(
         e.name == "lobo" and e.value == "lobo.cli:main" for e in package.entry_points
     )
+    assert any(
+        e.name == "pylobo" and e.value == "lobo.cli:main" for e in package.entry_points
+    )
     assert files(lobo).joinpath("py.typed").is_file()
     assert (
-        files(lobo).joinpath("_web/wasm/lobo_wasm_bg.wasm").read_bytes()[:4]
-        == b"\0asm"
+        files(lobo).joinpath("_web/wasm/lobo_wasm_bg.wasm").read_bytes()[:4] == b"\0asm"
     )
 
 
@@ -71,13 +73,31 @@ def test_web_command_opens_exact_server_without_shell(
         main(["web", "--server", "file:///etc/passwd"])
 
 
-def test_installed_console_server_starts_and_stops() -> None:
-    # Launch the generated console script, not a module from the source tree.
+def test_installed_demo_command() -> None:
     console = Path(sys.executable).parent / (
-        "lobo.exe" if sys.platform == "win32" else "lobo"
+        "pylobo.exe" if sys.platform == "win32" else "pylobo"
     )
+    result = subprocess.run(
+        [str(console), "demo", "--help"],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=10,
+    )
+    assert "lobo demo" in result.stdout
+    assert "--no-open" in result.stdout
+
+
+@pytest.mark.parametrize("command", ["serve", "demo"])
+def test_installed_console_server_starts_and_stops(command: str) -> None:
+    # Launch the generated console script, not a module from the source tree.
+    name = "pylobo" if command == "demo" else "lobo"
+    console = Path(sys.executable).parent / (
+        name + ".exe" if sys.platform == "win32" else name
+    )
+    options = ["--no-open"] if command == "demo" else ["--book", "CLI"]
     child = subprocess.Popen(
-        [str(console), "serve", "--port", "0", "--book", "CLI"],
+        [str(console), command, "--port", "0", *options],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
@@ -89,8 +109,13 @@ def test_installed_console_server_starts_and_stops() -> None:
     try:
         url = lines.get(timeout=30).strip()
         assert url.startswith("http://127.0.0.1:"), url
-        books = json.loads(read(url + "/api/books"))
-        assert [book["symbol"] for book in books] == ["CLI"]
+        if command == "demo":
+            assert json.loads(read(url + "/api/server-context")) == {
+                "mode": "standalone"
+            }
+        else:
+            books = json.loads(read(url + "/api/books"))
+            assert [book["symbol"] for book in books] == ["CLI"]
         assert b"/_next/static/" in read(url)
     finally:
         child.terminate()

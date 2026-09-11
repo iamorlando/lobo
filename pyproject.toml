@@ -30,6 +30,7 @@ Issues = "https://github.com/iamorlando/lobo/issues"
 
 [project.scripts]
 lobo = "lobo.cli:main"
+pylobo = "lobo.cli:main"
 
 [tool.poetry]
 package-mode = false
