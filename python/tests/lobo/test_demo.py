@@ -135,6 +135,19 @@ def test_final_range_is_clamped_to_the_session_size() -> None:
     chunk.read.assert_called_once_with(3)
 
 
+def test_local_app_starts_without_reverse_dns(monkeypatch: pytest.MonkeyPatch) -> None:
+    lookup = MagicMock(
+        side_effect=AssertionError("Local demo startup must not depend on reverse DNS")
+    )
+    monkeypatch.setattr("socket.gethostbyaddr", lookup)
+    with (
+        demo.demo_context() as url,
+        urlopen(url + "/api/server-context", timeout=5) as reply,  # noqa: S310
+    ):
+        assert json.load(reply) == {"mode": "standalone"}
+    lookup.assert_not_called()
+
+
 def test_local_app_routes_preserve_standalone_mode_and_configured_file(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

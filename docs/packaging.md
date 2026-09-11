@@ -186,7 +186,7 @@ only after all six jobs succeed; a local macOS result does not establish it.
 ARM runner availability and billing depend on the repository's GitHub plan.
 
 The workflow runs on pull requests, pushes to `main`/`master`/`develop` and
-`release/**`/`hotfix/**`, `v*` tags, and manual dispatch. Download `python-sdist` and
+`release/**`/`hotfix/**`, `v*`/`python-v*` tags, and manual dispatch. Download `python-sdist` and
 `wheels-*` from the run's artifacts to install elsewhere. After committing and
 pushing the changes, it can also be started with:
 
@@ -220,6 +220,20 @@ dependency versions to `0.1.1`, update `Cargo.lock`, and commit before tagging.
 Use a fresh tag and version for each release; published versions cannot be
 overwritten by moving an old tag. A separate `rust-v0.1.1` tag is unnecessary
 for a combined release.
+
+For a Python-only release, use `python-v0.1.1` instead. This tag must match the
+Python project version and triggers only the Python workflow. For example, if
+Rust `0.1.1` published successfully but Python `0.1.1` failed before upload,
+commit and push the Python fix, then release the still-unpublished version:
+
+```sh
+git tag -a python-v0.1.1 -m "Release pylobo 0.1.1"
+git push origin python-v0.1.1
+```
+
+Keep the original `v0.1.1` tag in place. If Python `0.1.1` is already published,
+bump the Python project version and its installed-package metadata test, then
+use the corresponding new `python-vX.Y.Z` tag.
 
 The workflow rejects a mismatched tag before building. Once the source archive
 and all six wheel jobs succeed, the publish job downloads their audited

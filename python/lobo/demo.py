@@ -11,6 +11,7 @@ from functools import partial
 from http.client import HTTPException
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from socketserver import TCPServer
 from threading import Lock, Thread
 from time import monotonic
 from typing import Any, TypedDict
@@ -265,6 +266,16 @@ class _DemoHandler(SimpleHTTPRequestHandler):
             super().do_GET()
 
 
+class _DemoServer(ThreadingHTTPServer):
+    """Bind the loopback address without waiting for reverse DNS."""
+
+    def server_bind(self) -> None:
+        """Use the numeric address as the name of this local server."""
+        # HTTPServer.server_bind calls getfqdn(), which can stall on macOS.
+        TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address[:2]
+
+
 @contextmanager
 def demo_context(*, port: int = 0) -> Iterator[str]:
     """Serve the bundled standalone app and its existing data-source APIs."""
@@ -279,7 +290,7 @@ def demo_context(*, port: int = 0) -> Iterator[str]:
     handler = partial(
         _DemoHandler, root=root, nasdaq=NasdaqSessions(), replay_path=replay_path
     )
-    with ThreadingHTTPServer(("127.0.0.1", port), handler) as server:
+    with _DemoServer(("127.0.0.1", port), handler) as server:
         thread = Thread(target=server.serve_forever, daemon=True)
         thread.start()
         try:
