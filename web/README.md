@@ -15,7 +15,7 @@ and starts the Next.js App Router app. Rust and Node.js are required;
   [Nasdaq's public directory](https://emi.nasdaq.com/ITCH/Nasdaq%20ITCH/), including
   all listed ITCH 5.0 `.gz` sessions. Sidecars, ZIP archives, and the legacy
   `tvagg.gz` layout are excluded. The first listed session loads automatically
-  with only AAPL in book scope.
+  with the Top tech preset in book scope.
   Compressed byte ranges stream through Next.js with bounded parallel read-ahead
   and are incrementally decompressed in the browser before entering the existing
   replay adapter. Nothing is saved to
@@ -51,7 +51,7 @@ and starts the Next.js App Router app. Rust and Node.js are required;
   fast-forward mode. Changing **Start at** and pressing **Apply** uses the same path.
   Browser execution, event aggregation, and streamed gzip input still differ
   from native benchmarks.
-- **Book scope** next to the data source defaults to **AAPL only** for hosted
+- **Book scope** next to the data source defaults to **Top tech** for hosted
   Nasdaq sessions and **All tickers** for local and repository replay files. The wide dialog
   shares the symbol box's autocomplete ranking and offers a short Top tech list
   and an S&P 500 preset from dated SPY holdings, intersected with the feed directory.

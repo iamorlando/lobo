@@ -96,7 +96,7 @@ and explicit Cancel / Apply actions. It shares the viewing ticker's matching
 and ranking. Categories intersect the actual feed directory; show their source
 and date rather than suggesting historical index membership.
 
-Hosted Nasdaq sessions start with AAPL only. Local and repository replay files
+Hosted Nasdaq sessions start with the Top tech preset. Local and repository replay files
 default to All. The Tech preset remains available in the selector. Replay scope
 determines native routing before books are allocated. Applying scope restarts at
 the configured Start at time. Live All

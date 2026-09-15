@@ -7,6 +7,7 @@ import {
 import { LevelQueue } from "@/components/level-queue";
 import { TickerPicker } from "@/components/ticker-picker";
 import { BookScopeSelector, type BookScope } from "@/components/book-scope";
+import categories from "@/lib/ticker-categories.json";
 import { ThemeSelector } from "@/components/theme-provider";
 import {
   loadWasm,
@@ -143,7 +144,7 @@ export default function ReplayLab({
     choice.kind === "live"
       ? server?.adapters?.find((adapter) => adapter.id === choice.adapterId)
       : undefined;
-  const [scope, setScope] = useState<BookScope>(server ? null : ["AAPL"]);
+  const [scope, setScope] = useState<BookScope>(server ? null : categories.tech);
   const [loadedTicker, setLoadedTicker] = useState(
     server
       ? (server.adapters?.[0]?.defaultSymbol ??
@@ -844,7 +845,7 @@ export default function ReplayLab({
     return () => document.removeEventListener("visibilitychange", hide);
   }, [playbackEndpoint]);
   const chooseSource = (next: SourceChoice) => {
-    setScope(next.kind === "nasdaq" ? ["AAPL"] : null);
+    setScope(next.kind === "nasdaq" ? categories.tech : null);
     const adapter =
       next.kind === "live"
         ? adapters.find((a) => a.id === next.adapterId)

@@ -29,7 +29,7 @@ uvx pylobo demo
 This runs the existing web demo on localhost and opens it in your default
 browser. It serves the bundled app with its normal Nasdaq streaming, live
 exchange feeds, file picker, book scope, playback, and chart controls. The
-app keeps its existing defaults, including AAPL as the initial Nasdaq scope.
+app starts Nasdaq sessions with the existing Top tech preset in book scope.
 
 The launcher chooses a free local port. Use `--port 8000` to choose one or
 `--no-open` to print the URL without opening a browser. Ctrl-C stops the local
@@ -122,7 +122,7 @@ To try it manually in any compatible Python environment, install the wheel
 printed by the build script, then open its terminal:
 
 ```sh
-python -m pip install /path/to/pylobo-0.1.1-cp311-abi3-PLATFORM.whl
+python -m pip install /path/to/pylobo-0.1.2-cp311-abi3-PLATFORM.whl
 lobo serve --port 0 --book AAPL --open
 ```
 
@@ -221,19 +221,18 @@ Use a fresh tag and version for each release; published versions cannot be
 overwritten by moving an old tag. A separate `rust-v0.1.1` tag is unnecessary
 for a combined release.
 
-For a Python-only release, use `python-v0.1.1` instead. This tag must match the
-Python project version and triggers only the Python workflow. For example, if
-Rust `0.1.1` published successfully but Python `0.1.1` failed before upload,
-commit and push the Python fix, then release the still-unpublished version:
+For the Python-only `0.1.2` release, use `python-v0.1.2`. This tag must match the
+Python project version and triggers only the Python workflow. Commit and push
+the release changes, then push the new tag:
 
 ```sh
-git tag -a python-v0.1.1 -m "Release pylobo 0.1.1"
-git push origin python-v0.1.1
+git tag -a python-v0.1.2 -m "Release pylobo 0.1.2"
+git push origin python-v0.1.2
 ```
 
-Keep the original `v0.1.1` tag in place. If Python `0.1.1` is already published,
-bump the Python project version and its installed-package metadata test, then
-use the corresponding new `python-vX.Y.Z` tag.
+Keep the existing `v0.1.1` and `python-v0.1.1` tags in place. Python `0.1.1`
+is already published; each later release needs a new Python project version,
+matching installed-package metadata assertion, and `python-vX.Y.Z` tag.
 
 The workflow rejects a mismatched tag before building. Once the source archive
 and all six wheel jobs succeed, the publish job downloads their audited
