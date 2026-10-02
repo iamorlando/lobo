@@ -98,3 +98,9 @@ terminal restoration.
 and the [Homebrew tap](https://github.com/iamorlando/homebrew-lobo) are published.
 Release artifacts are the unmodified, tested CI artifacts. This later
 documentation update does not change application source or binary bytes.
+
+The public tap was then fetched into the separate temporary Homebrew prefix and
+`brew install lobo` downloaded and poured the public Apple Silicon bottle with
+no additional formula dependencies. The installed executable's SHA256 matched
+the exact CI executable. It produced an AAPL L3 snapshot (bid 99.99, ask 100.01)
+with an empty environment and system-only PATH, and reported `lobo 0.1.0`.
