@@ -15,6 +15,7 @@ Linux ARM64 was subsequently built and tested locally in an isolated Ubuntu cont
 
 - Four independent clients received byte-equivalent native state at matching published sequence numbers; attached CLI captures of candles, book, flow and orders also matched.
 - Shared pause/play, symbol selection, bar aggregation, isolated L3 simulation, FIFO entry/cancellation, return to main and restart passed. Slow/nonreading panes did not stall the publisher (30 frames published in 0.5 seconds).
+- Shared order entry carries the displayed instrument and session revision. A cancellation from a stale pane was rejected after switching instruments; the same cancellation succeeded after refreshing the intended instrument and queue.
 - Four real tmux panes rendered through Metal. A simulation entered in one pane appeared in another; all panes showed the same paused source clock. Closing one pane left the remaining charts and session running.
 - Four simultaneous 90 × 25 real terminal streams produced 180 frames each in 3.029–3.049 seconds (59.0–59.4 fps including startup), including ANSI writes, with exact terminal attribute restoration.
 - A color-output regression caused by inherited `NO_COLOR` was found during visual QA and fixed. Terminal and tmux checks now assert RGB foreground/background output; the actual tmux capture was rendered and visually inspected.

@@ -627,7 +627,7 @@ impl App {
     }
     pub fn submit_order(&mut self, command: Command) -> Result<String> {
         if let Some(peer) = &self.peer {
-            return peer.submit(command);
+            return peer.submit(command, &self.snapshot);
         }
         if let Some(endpoint) = self.args.order_endpoint.clone() {
             if self.remote.is_some() {

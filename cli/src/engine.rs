@@ -93,6 +93,7 @@ pub struct Simulation {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Snapshot {
     pub session_sequence: Option<u64>,
+    pub session_revision: Option<u64>,
     pub feed_error: Option<String>,
     pub symbol: String,
     pub source: String,

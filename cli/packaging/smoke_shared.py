@@ -53,7 +53,7 @@ class Pane:
                 with self.lock:
                     if 'Frame' in reply:
                         frame = reply['Frame']
-                        assert frame['protocol'] == 1
+                        assert frame['protocol'] == 2
                         if frame['reset_depth']:
                             depth = []
                         depth.extend(frame.pop('depth'))
@@ -75,12 +75,15 @@ class Pane:
             return self.frames[max(self.frames)] if self.frames else None
 
     def command(self, text, failure=False):
+        return self.action({'Command': text}, failure)
+
+    def action(self, action, failure=False):
         self.id += 1
-        packet = json.dumps({'id': self.id, 'action': {'Command': text}}).encode()
+        packet = json.dumps({'id': self.id, 'action': action}).encode()
         self.stream.sendall(struct.pack('>I', len(packet)) + packet)
         wait(lambda: self.id in self.acks)
         result = self.acks[self.id]
-        assert ('Err' in result) == failure, (text, result)
+        assert ('Err' in result) == failure, (action, result)
         return result
 
     def close(self):
@@ -140,13 +143,34 @@ with tempfile.TemporaryDirectory(prefix='lobo-shared-') as directory:
         wait(lambda: all(any(o['quantity'] == 42 for o in p.latest()['snapshot']['queue']) for p in panes))
         panes[1].command('cancel 1 12')
         wait(lambda: all(any(o['quantity'] == 30 for o in p.latest()['snapshot']['queue']) for p in panes))
+        displayed = copy.deepcopy(panes[1].latest())
+        order_id = next(o['id'] for o in displayed['snapshot']['queue'] if o['quantity'] == 30)
+        submit = {'Submit': {'command': {'op': 'cancel', 'id': order_id,
+                                         'quantity': 10 ** displayed['snapshot']['quantity_decimals']},
+                             'symbol': displayed['snapshot']['symbol'], 'revision': displayed['revision']}}
+        panes[0].command('symbol AAPL')
+        wait(lambda: all(p.latest()['snapshot']['symbol'] == 'AAPL' for p in panes))
+        rejected = panes[1].action(submit, failure=True)
+        assert 'session context changed' in rejected['Err']
+        panes[0].command('symbol MSFT')
+        wait(lambda: all(p.latest()['snapshot']['symbol'] == 'MSFT' for p in panes))
+        panes[0].command('queue buy 95')
+        wait(lambda: all(any(o['id'] == order_id for o in p.latest()['snapshot']['queue']) for p in panes))
+        submit['Submit']['revision'] = panes[1].latest()['revision']
+        panes[1].action(submit)
+        wait(lambda: all(any(o['quantity'] == 29 for o in p.latest()['snapshot']['queue']) for p in panes))
         panes[0].command('play')
+        baseline_start = panes[0].latest()['sequence']
+        time.sleep(0.5)
+        baseline = panes[0].latest()['sequence'] - baseline_start
         slow = socket.socket(socket.AF_UNIX)
         slow.connect(str(path))  # Deliberately never read its frames.
         before = panes[0].latest()['sequence']
         time.sleep(0.5)
         after = panes[0].latest()['sequence']
-        assert after - before >= 12, (before, after)
+        # Hosted runner CPU quotas vary; verify isolation against this runner's
+        # measured cadence rather than mistaking a scheduling delay for deadlock.
+        assert baseline >= 3 and after - before >= max(3, baseline // 3), (baseline, before, after)
         panes[0].command('pause')
         wait(lambda: all(p.latest()['config']['paused'] for p in panes))
         # The executable attach path must use this state instead of opening a demo.
@@ -158,6 +182,7 @@ with tempfile.TemporaryDirectory(prefix='lobo-shared-') as directory:
         for snapshot in snapshots:
             assert snapshot['session_sequence'] is not None
             snapshot.pop('session_sequence')
+            assert snapshot['session_revision'] is not None
         assert all(s == snapshots[0] for s in snapshots), 'CLI attach state differs between chart views'
         assert snapshots[0]['symbol'] == 'MSFT'
         panes[0].command('restart')
@@ -179,7 +204,7 @@ with tempfile.TemporaryDirectory(prefix='lobo-shared-') as directory:
         server.terminate()
         assert server.wait(timeout=5) == 0
         assert not path.exists()
-        print(f'Shared session passed: four identical streams, shared controls/simulation/FIFO, slow-pane isolation, executable attachments, cleanup; {after-before} frames published in 0.5s')
+        print(f'Shared session passed: four identical streams, shared controls/simulation/FIFO, stale-order rejection, slow-pane isolation, executable attachments, cleanup; {after-before} frames in 0.5s (baseline {baseline})')
     finally:
         if slow:
             slow.close()

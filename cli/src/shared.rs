@@ -27,7 +27,7 @@ use std::{
 };
 
 const MAX_PACKET: usize = 64 * 1024 * 1024;
-const PROTOCOL: u32 = 1;
+const PROTOCOL: u32 = 2;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Config {
@@ -108,7 +108,11 @@ struct WireFrame {
 #[derive(Serialize, Deserialize)]
 enum Action {
     Command(String),
-    Submit(Command),
+    Submit {
+        command: Command,
+        symbol: String,
+        revision: u64,
+    },
 }
 #[derive(Serialize, Deserialize)]
 struct Request {
@@ -203,6 +207,7 @@ impl Client {
                             let mut snapshot = frame.snapshot;
                             snapshot.depth = depth.clone();
                             snapshot.session_sequence = Some(frame.sequence);
+                            snapshot.session_revision = Some(frame.revision);
                             task_state.lock().unwrap().latest = Some(Update {
                                 config: frame.config,
                                 snapshot,
@@ -271,8 +276,14 @@ impl Client {
     pub fn command(&self, text: &str) -> Result<String> {
         self.request(Action::Command(text.into()))
     }
-    pub fn submit(&self, command: Command) -> Result<String> {
-        self.request(Action::Submit(command))
+    pub fn submit(&self, command: Command, displayed: &Snapshot) -> Result<String> {
+        self.request(Action::Submit {
+            command,
+            symbol: displayed.symbol.clone(),
+            revision: displayed
+                .session_revision
+                .context("wait for the session snapshot before entering an order")?,
+        })
     }
 }
 impl Drop for Client {
@@ -317,7 +328,12 @@ fn serve_client(
                 for ack in rx.try_iter() {
                     write_packet(&mut writer, &Reply::Ack(ack))?;
                 }
-                if stop.load(Ordering::Relaxed) {
+                if stop.load(Ordering::Acquire) {
+                    // A requested stop is published only after its acknowledgement
+                    // has been queued. Drain again to cover the race with the first drain.
+                    for ack in rx.try_iter() {
+                        write_packet(&mut writer, &Reply::Ack(ack))?;
+                    }
                     break;
                 }
                 let (lock, wake) = &*publication;
@@ -416,7 +432,7 @@ pub fn run(args: &Args) -> Result<()> {
     let sigint = signal_hook::flag::register(signal_hook::consts::SIGINT, stop.clone())?;
     let sigterm = signal_hook::flag::register(signal_hook::consts::SIGTERM, stop.clone())?;
     let result = run_session(args, listener, stop.clone());
-    stop.store(true, Ordering::Relaxed);
+    stop.store(true, Ordering::Release);
     signal_hook::low_level::unregister(sigint);
     signal_hook::low_level::unregister(sigterm);
     result
@@ -464,13 +480,24 @@ fn run_session(args: &Args, listener: UnixListener, stop: Arc<AtomicBool>) -> Re
             }
         }
         for pending in rx.try_iter().take(64) {
+            let stopping =
+                matches!(&pending.request.action, Action::Command(text) if text == "stop");
             let result = match pending.request.action {
-                Action::Command(text) if text == "stop" => {
-                    stop.store(true, Ordering::Relaxed);
-                    Ok("Session stopped".into())
-                }
+                Action::Command(text) if text == "stop" => Ok("Session stopped".into()),
                 Action::Command(text) => app.command(&text).map(|()| app.message.clone()),
-                Action::Submit(command) => app.submit_order(command),
+                Action::Submit {
+                    command,
+                    symbol,
+                    revision: expected,
+                } => {
+                    if expected != revision || symbol != app.snapshot.symbol {
+                        Err(anyhow!(
+                            "session context changed; wait for the pane to refresh before entering the order"
+                        ))
+                    } else {
+                        app.submit_order(command)
+                    }
+                }
             };
             if result.is_ok() {
                 revision += 1;
@@ -479,12 +506,17 @@ fn run_session(args: &Args, listener: UnixListener, stop: Arc<AtomicBool>) -> Re
                 id: pending.request.id,
                 result: result.map_err(|e| e.to_string()),
             });
+            if stopping {
+                stop.store(true, Ordering::Release);
+                break;
+            }
         }
         if Instant::now() >= next {
             app.refresh()?;
             sequence += 1;
             let mut snapshot = app.snapshot.clone();
             snapshot.session_sequence = Some(sequence);
+            snapshot.session_revision = Some(revision);
             let depth = std::mem::take(&mut snapshot.depth);
             *publication.0.lock().unwrap() = Some(Arc::new(Published {
                 sequence,
