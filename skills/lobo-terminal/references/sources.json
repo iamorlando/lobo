@@ -1,0 +1,282 @@
+[
+  {
+    "source": "agents/references/adapter-contract.md",
+    "resource": "references/docs/adapter-contract.md",
+    "sha256": "a99d6ccebd0a46c26e89d18c0495fcfd4bfec0bf21658e399a8b77e7fad9e0c7"
+  },
+  {
+    "source": "rust/crates/lobo_adapters/README.md",
+    "resource": "references/docs/adapters.md",
+    "sha256": "6f23441a2d1d55cd1599d3c026f11cf06ed29018ee109dfbd5bfa0637e0448b1"
+  },
+  {
+    "source": "rust/crates/lobo_cli/docs/agents/api.md",
+    "resource": "references/docs/api.md",
+    "sha256": "0f2cae9eb7ab6ee2f76942d24b8345354759b96113ff2a61267ec0f4c7cea0fb"
+  },
+  {
+    "source": "rust/crates/lobo_cli/docs/agents/commands.md",
+    "resource": "references/docs/commands.md",
+    "sha256": "289e9cb4e78d8b0e2c83dd42d86b2da9ec92040c75874b72be56cb16c9f683ef"
+  },
+  {
+    "source": "rust/crates/lobo_cli/docs/agents/completions.md",
+    "resource": "references/docs/completions.md",
+    "sha256": "4a9b275d0e9834a3064e599d6f4f4d69a44c008c7e801185837859aabcaf0b25"
+  },
+  {
+    "source": "rust/crates/lobo_replay/src/custom/README.md",
+    "resource": "references/docs/custom-adapters.md",
+    "sha256": "21b4e66879a06567db3c42c175b4050ef41f498d650e5a6a5e47df10eacec21d"
+  },
+  {
+    "source": "agents/references/hosted-adapters.md",
+    "resource": "references/docs/hosted-adapters.md",
+    "sha256": "c7a1121290d130273f85b55c015080c39444f7e6e96f15cfbd305765604ca01f"
+  },
+  {
+    "source": "README.md",
+    "resource": "references/docs/overview.md",
+    "sha256": "9ca16f155d2dad12a1c7061bcd203ebf7553b231feb19a2da4129851cb849860"
+  },
+  {
+    "source": "docs/packaging.md",
+    "resource": "references/docs/packaging.md",
+    "sha256": "12b97b79d5ddd2f3dea5b10292b64b12637b04beb54c60fb0fd0408c7c0f1375"
+  },
+  {
+    "source": "rust/crates/lobo_cli/docs/agents/presets.md",
+    "resource": "references/docs/presets.md",
+    "sha256": "a8f8c0ac3b0dd214e4a8529c755b475090a20a457bf0d772975678c2f27dae17"
+  },
+  {
+    "source": "python/examples/README.md",
+    "resource": "references/docs/python-examples.md",
+    "sha256": "07c1bf8fd6e84fb95081ade3d250940c69067b3e93ace839e5831b36153b0284"
+  },
+  {
+    "source": "python/examples/bitfinex/README.md",
+    "resource": "references/docs/python-examples-bitfinex.md",
+    "sha256": "0b4d0b4a577e12bb205a69cdde8acb4d75541cadf4a824492377dac2824298bb"
+  },
+  {
+    "source": "python/examples/itch/README.md",
+    "resource": "references/docs/python-examples-itch.md",
+    "sha256": "d1e0ccf3251ed30a1ab22439724329dcc0ae94ff2ebacc790b43f5e316232b0c"
+  },
+  {
+    "source": "python/examples/kraken/README.md",
+    "resource": "references/docs/python-examples-kraken.md",
+    "sha256": "c333e3524c9b6e70b1177f42b1180ba71187ea85e4b638721924e9887d571adb"
+  },
+  {
+    "source": "python/examples/order_api/README.md",
+    "resource": "references/docs/python-examples-order_api.md",
+    "sha256": "fa3c03a2244b1dd06e5193a911093a0a796a6d2d4bebd04b4e0a1125e8b0c9c0"
+  },
+  {
+    "source": "python/examples/order_feed/README.md",
+    "resource": "references/docs/python-examples-order_feed.md",
+    "sha256": "0b1b4bdaef2b08d55fd1ed83b34789581173242c765fa4e391510b6cbac31048"
+  },
+  {
+    "source": "python/examples/polymarkets/README.md",
+    "resource": "references/docs/python-examples-polymarkets.md",
+    "sha256": "93e6a897984c687b590c3bdec0ef0141a00532ccaa91cc0306aa82d28c83fe7f"
+  },
+  {
+    "source": "python/notebooks/README.md",
+    "resource": "references/docs/python-notebooks.md",
+    "sha256": "bee02ee7f342c23e96c466b18fb6d913ae571c95651bb6a9971de27b08dca1cd"
+  },
+  {
+    "source": "rust/crates/lobo_batchers/README.md",
+    "resource": "references/docs/rust-batchers.md",
+    "sha256": "f93adee3e18f110c107be543142486d6270ae1e1fcf1f13de0cdbf1c16020b6f"
+  },
+  {
+    "source": "rust/crates/lobo_books/README.md",
+    "resource": "references/docs/rust-books.md",
+    "sha256": "7fbaa6ecf0798e6b56fb8cd00461ffcb429728f86b1e66b9292ea2da1e720c0e"
+  },
+  {
+    "source": "rust/crates/lobo_context/README.md",
+    "resource": "references/docs/rust-context.md",
+    "sha256": "fd6c1f68cb574d3854d66cad6a86beaa604b42196576d557a00a453a825a5286"
+  },
+  {
+    "source": "rust/crates/lobo_events/README.md",
+    "resource": "references/docs/rust-events.md",
+    "sha256": "d3a356f0f125f1975e5b7e46328f3cfb3e7df8118ebba40ec365dd6bafe4e892"
+  },
+  {
+    "source": "rust/crates/lobo/README.md",
+    "resource": "references/docs/rust-lobo.md",
+    "sha256": "6eec706c0d7c0c8c02a09108e1f2478b6a1ecc33727e7f49d85a4a38d99e7884"
+  },
+  {
+    "source": "rust/crates/lobo_models/README.md",
+    "resource": "references/docs/rust-models.md",
+    "sha256": "d432d37820e843ab1430d347c351fcdcedf61ad44917639ed7600fa6042b2c90"
+  },
+  {
+    "source": "docs/rust-packaging.md",
+    "resource": "references/docs/rust-packaging.md",
+    "sha256": "54d51bf03b4269e79e52fdda524810dd2541f775925c12a33467332292c78191"
+  },
+  {
+    "source": "rust/crates/lobo_primitives/README.md",
+    "resource": "references/docs/rust-primitives.md",
+    "sha256": "c9eb52a06c417cf5c7df08cb53caee5626290b2c9a31de99ec7da23b30071259"
+  },
+  {
+    "source": "rust/crates/lobo_replay/README.md",
+    "resource": "references/docs/rust-replay.md",
+    "sha256": "c789c931f569e0f50b75baf9fe084449c84612545ca83e05233161ca7a3b11d1"
+  },
+  {
+    "source": "rust/crates/lobo_replay_tests/README.md",
+    "resource": "references/docs/rust-replay_tests.md",
+    "sha256": "56957f98d63d9121840fb57170d04e9ddd6fb324228e36eabcd82d5ef21c46df"
+  },
+  {
+    "source": "rust/crates/lobo_storage/README.md",
+    "resource": "references/docs/rust-storage.md",
+    "sha256": "27ac5718b122a0984ec3f9ce3a9e7345f1439490ed4e83c636dbb54137862e6b"
+  },
+  {
+    "source": "rust/crates/lobo_server/README.md",
+    "resource": "references/docs/server.md",
+    "sha256": "4901c063a631be57317906512f3dba50184797db8b20887d530cb1fe14c91e6d"
+  },
+  {
+    "source": "rust/crates/lobo_cli/README.md",
+    "resource": "references/docs/terminal.md",
+    "sha256": "2b2742969481415da201a6b3354068877a1743b781164550bc1621e67cfb03c7"
+  },
+  {
+    "source": "web/README.md",
+    "resource": "references/docs/web.md",
+    "sha256": "06f3685535edb47783127819cb70f9a1d36c869338b4100102526216dc3e5be4"
+  },
+  {
+    "source": "python/lobo/_lobo/__init__.pyi",
+    "resource": "references/python-api/_lobo/__init__.pyi",
+    "sha256": "5014a94d4566ba0323e8a4b83eb740dad25c18a1eaf294fec835679f05853100"
+  },
+  {
+    "source": "python/lobo/_lobo/_lobo/__init__.pyi",
+    "resource": "references/python-api/_lobo/_lobo/__init__.pyi",
+    "sha256": "76e751c50ab5c395d0f1900dea54589cb13495cd0d8685e9f6f24d4c337efeab"
+  },
+  {
+    "source": "python/lobo/_lobo/_lobo/replay/__init__.pyi",
+    "resource": "references/python-api/_lobo/_lobo/replay/__init__.pyi",
+    "sha256": "31d94b7cc5d91a8a9eac2ccee4effa2f7da0268dde6adb6a1c254d3cae89180d"
+  },
+  {
+    "source": "python/lobo/_lobo/_lobo/replay/bitfinex.pyi",
+    "resource": "references/python-api/_lobo/_lobo/replay/bitfinex.pyi",
+    "sha256": "d81b6549ed312e10b278ff4a83a35d03403e7a0e804678996e4fbdca690063c2"
+  },
+  {
+    "source": "python/lobo/_lobo/_lobo/replay/custom.pyi",
+    "resource": "references/python-api/_lobo/_lobo/replay/custom.pyi",
+    "sha256": "6d867edb21985f4f5650bf09501138cae638cca88e74cdb2c025041b376f39d3"
+  },
+  {
+    "source": "python/lobo/_lobo/_lobo/replay/expressions.pyi",
+    "resource": "references/python-api/_lobo/_lobo/replay/expressions.pyi",
+    "sha256": "6d6f9836c735b342c2a23526ca16a0a3a0134c93d600f1bd149c3d06e069134f"
+  },
+  {
+    "source": "python/lobo/_lobo/_lobo/replay/itch.pyi",
+    "resource": "references/python-api/_lobo/_lobo/replay/itch.pyi",
+    "sha256": "f54a379b85414ae0eee0a827aef6b741f628cd9b679ec42d6dd14b17e0899b71"
+  },
+  {
+    "source": "python/lobo/_lobo/_lobo/replay/kraken.pyi",
+    "resource": "references/python-api/_lobo/_lobo/replay/kraken.pyi",
+    "sha256": "29c0c7ec9326a95299e5212840e1565f85a111520d771ed357e366f9d220759c"
+  },
+  {
+    "source": "python/lobo/_lobo/_lobo/replay/models.pyi",
+    "resource": "references/python-api/_lobo/_lobo/replay/models.pyi",
+    "sha256": "cd45a4d9db7e3f33563a750cb33137354ea65e451ea4cb3fa8e0b00eb9eab3c7"
+  },
+  {
+    "source": "python/lobo/_lobo/context.pyi",
+    "resource": "references/python-api/_lobo/context.pyi",
+    "sha256": "615dcdaf2755bd91fb0c67d84040a57f2e96120732bbfc474aeb8a5fd1afc327"
+  },
+  {
+    "source": "python/lobo/_lobo/orders.pyi",
+    "resource": "references/python-api/_lobo/orders.pyi",
+    "sha256": "efb7412012909ab234378ea0c69ef4a1bf2dbf341111964273442d25c8fccfc6"
+  },
+  {
+    "source": "python/lobo/_lobo/server.pyi",
+    "resource": "references/python-api/_lobo/server.pyi",
+    "sha256": "8e4cd6c3085ad1f161b5d3a1fff64f7991daa315dcc99a071d6160c3bea28055"
+  },
+  {
+    "source": "python/lobo/_lobo/sinks.pyi",
+    "resource": "references/python-api/_lobo/sinks.pyi",
+    "sha256": "ac1c6f473e7ac63a6487543229f2438e87f542840f62185b339662cd6f805a16"
+  },
+  {
+    "source": "python/lobo/_lobo/storage.pyi",
+    "resource": "references/python-api/_lobo/storage.pyi",
+    "sha256": "34e11f0803acdb55f2bdd224c90d821cd07253f77c7f6f9a0150213c58507d53"
+  },
+  {
+    "source": "python/lobo/context.pyi",
+    "resource": "references/python-api/context.pyi",
+    "sha256": "7ede2a29ce94cc102e8b375591d99a023ce4ed62ffc80ad26cf5041c60318a39"
+  },
+  {
+    "source": "python/lobo/orders.pyi",
+    "resource": "references/python-api/orders.pyi",
+    "sha256": "58958ae345ff0090ab3ff5c2a5b0ec0cf7e64571c67eb4f2a792a9783ca9abd3"
+  },
+  {
+    "source": "python/lobo/replay/adapters/__init__.pyi",
+    "resource": "references/python-api/replay/adapters/__init__.pyi",
+    "sha256": "b534c63b564b8a4eaeac390373069311fee3cfafb3c5ff1283314be059cceffa"
+  },
+  {
+    "source": "python/lobo/replay/adapters/bitfinex.pyi",
+    "resource": "references/python-api/replay/adapters/bitfinex.pyi",
+    "sha256": "841a8dc17ac6e9b6a0fe15e0e1dd892434f391d608313746147306e4a5fe2945"
+  },
+  {
+    "source": "python/lobo/replay/adapters/custom.pyi",
+    "resource": "references/python-api/replay/adapters/custom.pyi",
+    "sha256": "41876f22d55f0f036473965e9c4fb3159c21f3230d5431ce21219c9efdef8ba6"
+  },
+  {
+    "source": "python/lobo/replay/adapters/expressions.pyi",
+    "resource": "references/python-api/replay/adapters/expressions.pyi",
+    "sha256": "76da00602e45273caf37a1e56d846e8ead679be40f68d6eed1ff7f78df99f10b"
+  },
+  {
+    "source": "python/lobo/replay/adapters/itch.pyi",
+    "resource": "references/python-api/replay/adapters/itch.pyi",
+    "sha256": "3818dd5fffb9e5aca56fa2d13399db23d168b8c5a748e0ef2420c3d471a3d11b"
+  },
+  {
+    "source": "python/lobo/replay/adapters/kraken.pyi",
+    "resource": "references/python-api/replay/adapters/kraken.pyi",
+    "sha256": "fb7043818ba6ebf46e758b7023e5fb8b8744780c90a5e6b296015d85c9790229"
+  },
+  {
+    "source": "python/lobo/replay/adapters/models.pyi",
+    "resource": "references/python-api/replay/adapters/models.pyi",
+    "sha256": "5342cc29caf336b6c5329bf7cf4783eb17e8ac2cff8c9dd39cc2c890cad6f3a3"
+  },
+  {
+    "source": "python/lobo/storage.pyi",
+    "resource": "references/python-api/storage.pyi",
+    "sha256": "af7832034437ba27e6e7f5fd1679a46514d7f5c199918eb76f29a62f01fd8c49"
+  }
+]

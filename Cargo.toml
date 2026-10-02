@@ -7,6 +7,7 @@ repository = "https://github.com/iamorlando/lobo"
 [workspace]
 resolver = "3"
 members = ["rust/crates/*"]
+exclude = ["rust/crates/lobo_cli"]
 default-members = [
     "rust/crates/lobo",
     "rust/crates/lobo_books",

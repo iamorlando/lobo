@@ -1,0 +1,33 @@
+# Generated from native release archives by rust/crates/lobo_cli/packaging/release.py.
+class Lobo < Formula
+  desc "Native terminal market charts, replay, FIFO and order simulation"
+  homepage "https://github.com/iamorlando/lobo"
+  version "@VERSION@"
+  license "MIT"
+
+@PLATFORMS@
+
+@BOTTLES@
+
+  def install
+    bin.install "bin/lobo", "bin/lobo-tmux"
+    bash_completion.install "completions/lobo.bash"
+    zsh_completion.install "completions/_lobo"
+    fish_completion.install "completions/lobo.fish"
+    doc.install "README.md"
+    doc.install "docs", "packaging", "skills"
+  end
+
+  test do
+    assert_match "lobo #{version}", shell_output("#{bin}/lobo --version")
+    state = JSON.parse(shell_output("#{bin}/lobo --renderer cpu --snapshot-json --capture-seconds 0.1"))
+    catalog = JSON.parse(shell_output("#{bin}/lobo completions api"))
+    assert_equal 1, catalog.fetch("schema_version")
+    assert_equal 10, catalog.fetch("presets").length
+    system bin/"lobo", "skill", "install", "--directory", testpath/"skills"
+    assert_path_exists testpath/"skills/lobo-terminal/SKILL.md"
+    assert_equal "l3", state.fetch("level")
+    assert_operator state.fetch("bid"), :>, 0
+    assert_operator state.fetch("ask"), :>, state.fetch("bid")
+  end
+end

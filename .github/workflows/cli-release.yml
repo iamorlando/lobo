@@ -1,11 +1,11 @@
 name: Terminal application
 on:
   pull_request:
-    paths: ["cli/**", "rust/**", "Cargo.toml", ".github/workflows/cli-release.yml"]
+    paths: ["rust/**", "Cargo.toml", "Cargo.lock", "skills/lobo-terminal/**", "README.md", "docs/**", "web/README.md", "python/**", "agents/references/**", "agents/scripts/package_terminal.py", ".github/workflows/cli-release.yml"]
   push:
     branches: [main, master, "cli/**"]
     tags: ["cli-v*"]
-    paths: ["cli/**", "rust/**", "Cargo.toml", ".github/workflows/cli-release.yml"]
+    paths: ["rust/**", "Cargo.toml", "Cargo.lock", "skills/lobo-terminal/**", "README.md", "docs/**", "web/README.md", "python/**", "agents/references/**", "agents/scripts/package_terminal.py", ".github/workflows/cli-release.yml"]
   workflow_dispatch:
 permissions:
   contents: read
@@ -29,7 +29,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     env:
-      CARGO_TARGET_DIR: ${{ github.workspace }}/cli/target
+      CARGO_TARGET_DIR: ${{ github.workspace }}/rust/crates/lobo_cli/target
       MACOSX_DEPLOYMENT_TARGET: "12.0"
     steps:
       - uses: actions/checkout@v4
@@ -39,36 +39,38 @@ jobs:
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: cli
+          workspaces: |
+            rust/crates/lobo_cli -> target
+      - run: python3 agents/scripts/package_terminal.py --check
       # Only format/check this app, never the protected library workspace.
-      - run: cargo fmt --manifest-path cli/Cargo.toml --check
-      - run: cargo clippy --manifest-path cli/Cargo.toml --locked --all-targets -- -D warnings
-      - run: cargo test --manifest-path cli/Cargo.toml --locked
-      - run: python3 -m unittest discover -s cli/packaging -p 'test_*.py'
-      - run: cargo build --manifest-path cli/Cargo.toml --locked --release --target ${{ matrix.target }}
+      - run: cargo fmt --manifest-path rust/crates/lobo_cli/Cargo.toml --check
+      - run: cargo clippy --manifest-path rust/crates/lobo_cli/Cargo.toml --locked --all-targets --no-deps -- -D warnings
+      - run: cargo test --manifest-path rust/crates/lobo_cli/Cargo.toml --locked
+      - run: python3 -m unittest discover -s rust/crates/lobo_cli/packaging -p 'test_*.py'
+      - run: cargo build --manifest-path rust/crates/lobo_cli/Cargo.toml --locked --profile cli-release --target ${{ matrix.target }}
       - name: Build native archive with bundled completions and offline smoke test
         shell: bash
         run: |
-          version=$(python3 -c 'import pathlib,re; print(re.search(r"version = \"([^\"]+)\"",pathlib.Path("cli/Cargo.toml").read_text())[1])')
+          version=$(python3 -c 'import pathlib,re; print(re.search(r"version = \"([^\"]+)\"",pathlib.Path("rust/crates/lobo_cli/Cargo.toml").read_text())[1])')
           if [ "${{ github.ref_type }}" = tag ] && [ "${{ github.ref_name }}" != "cli-v$version" ]; then
             echo "CLI tag and application version differ" >&2
             exit 1
           fi
-          cli/target/${{ matrix.target }}/release/lobo --renderer cpu --snapshot-json --capture-seconds 0.1 > cli-state.json
-          python3 cli/packaging/smoke_terminal.py --binary cli/target/${{ matrix.target }}/release/lobo
-          python3 cli/packaging/smoke_sources.py --binary cli/target/${{ matrix.target }}/release/lobo
-          python3 cli/packaging/smoke_shared.py --binary cli/target/${{ matrix.target }}/release/lobo
-          python3 cli/packaging/smoke_shared_terminal.py --binary cli/target/${{ matrix.target }}/release/lobo --frames 90
+          rust/crates/lobo_cli/target/${{ matrix.target }}/cli-release/lobo --renderer cpu --snapshot-json --capture-seconds 0.1 > cli-state.json
+          python3 rust/crates/lobo_cli/packaging/smoke_terminal.py --binary rust/crates/lobo_cli/target/${{ matrix.target }}/cli-release/lobo
+          python3 rust/crates/lobo_cli/packaging/smoke_sources.py --binary rust/crates/lobo_cli/target/${{ matrix.target }}/cli-release/lobo
+          python3 rust/crates/lobo_cli/packaging/smoke_shared.py --binary rust/crates/lobo_cli/target/${{ matrix.target }}/cli-release/lobo
+          python3 rust/crates/lobo_cli/packaging/smoke_shared_terminal.py --binary rust/crates/lobo_cli/target/${{ matrix.target }}/cli-release/lobo --frames 90
           if command -v tmux >/dev/null; then
-            python3 cli/packaging/smoke_mux.py --binary cli/target/${{ matrix.target }}/release/lobo
+            python3 rust/crates/lobo_cli/packaging/smoke_mux.py --binary rust/crates/lobo_cli/target/${{ matrix.target }}/cli-release/lobo
           fi
-          python3 cli/packaging/release.py archive --version "$version" --target '${{ matrix.target }}' --binary 'cli/target/${{ matrix.target }}/release/lobo'
+          python3 rust/crates/lobo_cli/packaging/release.py archive --version "$version" --target '${{ matrix.target }}' --binary 'rust/crates/lobo_cli/target/${{ matrix.target }}/cli-release/lobo'
       - uses: actions/upload-artifact@v4
         with:
           name: lobo-${{ matrix.target }}
           path: |
-            cli/dist/*.tar.gz
-            cli/dist/*.sha256
+            rust/crates/lobo_cli/dist/*.tar.gz
+            rust/crates/lobo_cli/dist/*.sha256
   package:
     needs: build
     runs-on: ubuntu-22.04
@@ -80,27 +82,27 @@ jobs:
         with:
           pattern: lobo-*
           merge-multiple: true
-          path: cli/dist
+          path: rust/crates/lobo_cli/dist
       - name: Generate checksum-verified Homebrew formula
         run: |
-          version=$(python3 -c 'import pathlib,re; print(re.search(r"version = \"([^\"]+)\"",pathlib.Path("cli/Cargo.toml").read_text())[1])')
-          python3 cli/packaging/release.py formula --version "$version" --base-url "https://github.com/${{ github.repository }}/releases/download/cli-v$version" --output cli/dist/Formula/lobo.rb
-          ruby -c cli/dist/Formula/lobo.rb
+          version=$(python3 -c 'import pathlib,re; print(re.search(r"version = \"([^\"]+)\"",pathlib.Path("rust/crates/lobo_cli/Cargo.toml").read_text())[1])')
+          python3 rust/crates/lobo_cli/packaging/release.py formula --version "$version" --base-url "https://github.com/${{ github.repository }}/releases/download/cli-v$version" --output rust/crates/lobo_cli/dist/Formula/lobo.rb
+          ruby -c rust/crates/lobo_cli/dist/Formula/lobo.rb
       - uses: actions/upload-artifact@v4
         with:
           name: lobo-homebrew
           path: |
-            cli/dist/Formula/lobo.rb
-            cli/dist/SHA256SUMS
-            cli/dist/*.bottle.tar.gz
+            rust/crates/lobo_cli/dist/Formula/lobo.rb
+            rust/crates/lobo_cli/dist/SHA256SUMS
+            rust/crates/lobo_cli/dist/*.bottle.tar.gz
       - name: Prepare draft release for deliberate publication
         if: github.ref_type == 'tag' && startsWith(github.ref_name, 'cli-v')
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          gh release create "$RELEASE_TAG" --draft --title "Lobo terminal $RELEASE_TAG" --notes-file cli/packaging/RELEASE.md
-          gh release upload "$RELEASE_TAG" cli/dist/*.tar.gz cli/dist/SHA256SUMS cli/dist/Formula/lobo.rb
+          gh release create "$RELEASE_TAG" --draft --title "Lobo terminal $RELEASE_TAG" --notes-file rust/crates/lobo_cli/packaging/RELEASE.md
+          gh release upload "$RELEASE_TAG" rust/crates/lobo_cli/dist/*.tar.gz rust/crates/lobo_cli/dist/SHA256SUMS rust/crates/lobo_cli/dist/Formula/lobo.rb
   brew-test:
     needs: package
     strategy:
@@ -115,7 +117,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: lobo-homebrew
-          path: cli/dist
+          path: rust/crates/lobo_cli/dist
       - name: Pour the real native bottle and verify installed application
         shell: bash
         run: |
@@ -124,7 +126,7 @@ jobs:
           git -C "$tap" init -q
           python3 - "$tap" <<'PY'
           import pathlib, re, sys
-          root = pathlib.Path("cli/dist").resolve()
+          root = pathlib.Path("rust/crates/lobo_cli/dist").resolve()
           formula = (root / "Formula/lobo.rb").read_text()
           formula = re.sub(r'https://github.com/[^"\s]+/releases/download/cli-v[^/"\s]+', root.as_uri(), formula)
           (pathlib.Path(sys.argv[1]) / "Formula/lobo.rb").write_text(formula)

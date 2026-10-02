@@ -1,0 +1,222 @@
+[
+  {
+    "name": "symbol",
+    "aliases": [],
+    "syntax": "symbol SYMBOL",
+    "description": "Select the active instrument",
+    "scope": "shared",
+    "effect": "selection"
+  },
+  {
+    "name": "scope",
+    "aliases": [],
+    "syntax": "scope selected|all|top-tech|sp500|SYMBOL,SYMBOL",
+    "description": "Rebuild the source with a book scope",
+    "scope": "shared",
+    "effect": "restart"
+  },
+  {
+    "name": "source",
+    "aliases": [],
+    "syntax": "source auto|demo|itch|nasdaq|kraken|bitfinex|server [SYMBOL]",
+    "description": "Switch source and clear file/URL",
+    "scope": "shared",
+    "effect": "restart"
+  },
+  {
+    "name": "file",
+    "aliases": [],
+    "syntax": "file PATH",
+    "description": "Rebuild from a local ITCH file; path may contain spaces",
+    "scope": "shared",
+    "effect": "restart"
+  },
+  {
+    "name": "url",
+    "aliases": [],
+    "syntax": "url URL",
+    "description": "Rebuild with a replay/feed URL; select source first",
+    "scope": "shared",
+    "effect": "restart"
+  },
+  {
+    "name": "start",
+    "aliases": [],
+    "syntax": "start HH:MM:SS",
+    "description": "Reconstruct at exchange clock time",
+    "scope": "shared",
+    "effect": "restart"
+  },
+  {
+    "name": "restart",
+    "aliases": [],
+    "syntax": "restart",
+    "description": "Restart/reconnect the selected source",
+    "scope": "shared",
+    "effect": "restart"
+  },
+  {
+    "name": "speed",
+    "aliases": [],
+    "syntax": "speed MULTIPLIER",
+    "description": "Set replay speed, positive and at most 1000",
+    "scope": "shared",
+    "effect": "transport"
+  },
+  {
+    "name": "pause",
+    "aliases": [],
+    "syntax": "pause",
+    "description": "Pause replay",
+    "scope": "shared",
+    "effect": "transport"
+  },
+  {
+    "name": "play",
+    "aliases": [],
+    "syntax": "play",
+    "description": "Resume replay",
+    "scope": "shared",
+    "effect": "transport"
+  },
+  {
+    "name": "theme",
+    "aliases": [],
+    "syntax": "theme NAME",
+    "description": "Choose a palette; full name may contain spaces",
+    "scope": "pane",
+    "effect": "presentation"
+  },
+  {
+    "name": "theme-file",
+    "aliases": [],
+    "syntax": "theme-file PATH",
+    "description": "Load a local palette",
+    "scope": "pane",
+    "effect": "presentation"
+  },
+  {
+    "name": "aggregation",
+    "aliases": [
+      "bars"
+    ],
+    "syntax": "aggregation volume|time|ticks|notional SIZE",
+    "description": "Set bar kind and positive integer size",
+    "scope": "shared",
+    "effect": "aggregation"
+  },
+  {
+    "name": "history",
+    "aliases": [],
+    "syntax": "history SECONDS",
+    "description": "Set positive history duration",
+    "scope": "shared",
+    "effect": "history"
+  },
+  {
+    "name": "range",
+    "aliases": [],
+    "syntax": "range PRICE_SPAN",
+    "description": "Set positive visible price span",
+    "scope": "pane",
+    "effect": "presentation"
+  },
+  {
+    "name": "sim",
+    "aliases": [
+      "simulate"
+    ],
+    "syntax": "sim buy|sell market QUANTITY | sim buy|sell limit QUANTITY PRICE",
+    "description": "Nonmutating market preview or isolated L3 timeline",
+    "scope": "shared",
+    "effect": "simulation"
+  },
+  {
+    "name": "main",
+    "aliases": [],
+    "syntax": "main",
+    "description": "Return to the main timeline",
+    "scope": "shared",
+    "effect": "simulation"
+  },
+  {
+    "name": "queue",
+    "aliases": [],
+    "syntax": "queue buy|sell PRICE",
+    "description": "Inspect an L3 FIFO level",
+    "scope": "shared",
+    "effect": "selection"
+  },
+  {
+    "name": "add",
+    "aliases": [],
+    "syntax": "add buy|sell PRICE QUANTITY",
+    "description": "Add a resting limit order",
+    "scope": "shared",
+    "effect": "order-write"
+  },
+  {
+    "name": "limit",
+    "aliases": [],
+    "syntax": "limit buy|sell PRICE QUANTITY",
+    "description": "Match a limit order and rest its remainder",
+    "scope": "shared",
+    "effect": "order-write"
+  },
+  {
+    "name": "market",
+    "aliases": [],
+    "syntax": "market buy|sell QUANTITY",
+    "description": "Match a market order",
+    "scope": "shared",
+    "effect": "order-write"
+  },
+  {
+    "name": "cancel",
+    "aliases": [],
+    "syntax": "cancel UUID_OR_ROW QUANTITY",
+    "description": "Reduce a resting order",
+    "scope": "shared",
+    "effect": "order-write"
+  },
+  {
+    "name": "execute",
+    "aliases": [],
+    "syntax": "execute UUID_OR_ROW QUANTITY",
+    "description": "Execute against a resting order",
+    "scope": "shared",
+    "effect": "order-write"
+  },
+  {
+    "name": "modify",
+    "aliases": [],
+    "syntax": "modify UUID_OR_ROW QUANTITY [PRICE]",
+    "description": "Modify an order",
+    "scope": "shared",
+    "effect": "order-write"
+  },
+  {
+    "name": "remove",
+    "aliases": [],
+    "syntax": "remove UUID_OR_ROW",
+    "description": "Remove an order",
+    "scope": "shared",
+    "effect": "order-write"
+  },
+  {
+    "name": "help",
+    "aliases": [],
+    "syntax": "help",
+    "description": "Show the interactive help panel",
+    "scope": "pane",
+    "effect": "presentation"
+  },
+  {
+    "name": "stop",
+    "aliases": [],
+    "syntax": "stop",
+    "description": "Stop the session; ctl only",
+    "scope": "session-only",
+    "effect": "shutdown"
+  }
+]

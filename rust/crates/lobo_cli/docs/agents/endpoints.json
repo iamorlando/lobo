@@ -1,0 +1,86 @@
+[
+  {
+    "method": "GET",
+    "path": "/api/server-context",
+    "description": "Discover books, adapters and capabilities",
+    "service": "native-server",
+    "effect": "read"
+  },
+  {
+    "method": "GET",
+    "path": "/api/books",
+    "description": "List books",
+    "service": "native-server",
+    "effect": "read"
+  },
+  {
+    "method": "GET",
+    "path": "/api/books/{book}",
+    "description": "Read a book snapshot",
+    "service": "native-server",
+    "effect": "read"
+  },
+  {
+    "method": "POST",
+    "path": "/api/books/{book}/orders",
+    "description": "Submit a typed command",
+    "service": "native-server",
+    "effect": "write"
+  },
+  {
+    "method": "GET",
+    "path": "/api/schema",
+    "description": "Runtime JSON schemas",
+    "service": "native-server",
+    "effect": "read"
+  },
+  {
+    "method": "WS",
+    "path": "/api/feed",
+    "description": "Native book feed",
+    "service": "native-server",
+    "effect": "read"
+  },
+  {
+    "method": "WS",
+    "path": "/api/adapters/{index}/feed",
+    "description": "Observed adapter feed",
+    "service": "native-server",
+    "effect": "read"
+  },
+  {
+    "method": "POST",
+    "path": "/api/adapters/{index}/orders",
+    "description": "Submit {book, command} to an adapter",
+    "service": "native-server",
+    "effect": "write"
+  },
+  {
+    "method": "GET",
+    "path": "/api/adapters/{index}/playback",
+    "description": "Read playback state",
+    "service": "native-server",
+    "effect": "read"
+  },
+  {
+    "method": "POST",
+    "path": "/api/adapters/{index}/playback",
+    "description": "Control playback",
+    "service": "native-server",
+    "effect": "write"
+  },
+  {
+    "method": "POST",
+    "path": "/api/adapters/{index}/subscriptions",
+    "description": "Set {symbols, selected}",
+    "service": "native-server",
+    "effect": "write"
+  },
+  {
+    "method": "GET",
+    "path": "/api/nasdaq-sessions",
+    "description": "List public ITCH sessions in the standalone web app",
+    "service": "web",
+    "effect": "read"
+  }
+]

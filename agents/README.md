@@ -1,19 +1,20 @@
-# Lobo adapter skills
+# Lobo agent skills
 
-Two self-contained [Agent Skills](https://skills.sh/docs) for creating and testing
-market-data adapters with an installed lobo Python wheel:
+Self-contained [Agent Skills](https://skills.sh/docs) for native terminal views
+and for creating and testing market-data adapters with the lobo Python wheel:
 
 | Skill | Result |
 | --- | --- |
+| `lobo-terminal` | Native terminal preset views, simulations, live feeds, and complete offline CLI/API discovery. |
 | `lobo-adapter` | Adapter declaration, instrument discovery, and a runnable server using the wheel's bundled terminal. |
 | `lobo-adapter-tests` | Deterministic packet/transport tests, Polars checks, and browser inspection. |
 
 The canonical skills live in the repository-root `skills/` directory. They use
 standard `SKILL.md` files and bundled resources, so they work with Claude Code,
-Cursor, Gemini CLI, Codex, and other compatible agents. Neither requires an
-OpenAI plugin, vendor CLI, MCP server, library checkout, or GitHub access at use
-time. Python execution requires a compatible wheel; Rust and web build tools are
-not needed.
+Cursor, Gemini CLI, Codex, and other compatible agents. They require no
+OpenAI plugin, MCP server, library checkout, or GitHub access at use time.
+`lobo-terminal` uses the native executable. The adapter skills use a compatible
+Python wheel. Installed consumers do not need Rust or web build tools.
 
 ## Install through skills.sh
 
@@ -31,7 +32,8 @@ Use `--global` for all projects, or select agents explicitly, for example:
 npx skills add iamorlando/lobo --skill lobo-adapter lobo-adapter-tests --agent claude-code cursor gemini-cli --copy
 ```
 
-Either skill can be installed alone. The CLI discovers the root `skills/`
+Either adapter skill can be installed alone. See Native terminal skill below for
+terminal installation. The CLI discovers the root `skills/`
 directory; no plugin-specific tree URL or npm publication is needed. Installing
 from a private repository still requires access at installation time. Public
 installation without credentials requires publishing the skills in a public
@@ -43,7 +45,7 @@ Example requests:
 - “Use lobo-adapter to create a live adapter for this feed, with discovery and a runnable server.”
 - “Use lobo-adapter-tests to test my adapter's packets and subscriptions and inspect its terminal.”
 
-## Included in each skill
+## Included in each adapter skill
 
 - Relevant content from `rust/crates/lobo_replay/src/custom/README.md`, including complete packet and bootstrap examples, expression/action semantics, transport, and lifecycle.
 - Consumer sections of `rust/crates/lobo_server/README.md`, covering the Python server, policies, order API, feed, and errors.
@@ -125,3 +127,16 @@ npx skills add /path/to/loblib --skill lobo-adapter lobo-adapter-tests --agent c
 
 The root path exercises normal repository discovery. To test a ZIP, extract it
 and pass the extracted `skills` directory (or individual skill) to the same CLI.
+
+## Native terminal skill
+
+Install `lobo-terminal` through `npx skills add . --skill lobo-terminal` from a
+checkout, or `npx skills add iamorlando/lobo --skill lobo-terminal` once published.
+The native binary can also install its complete embedded copy offline with
+`lobo skill install --directory .agents/skills`. Start agent discovery with
+`lobo completions api`. This skill needs the native Rust terminal executable;
+the Python adapter skills retain their separate wheel-based workflow.
+
+Regenerate its full guides and Python declarations with
+`python3 agents/scripts/package_terminal.py`; verify with `--check`. The native
+build embeds that canonical tree. Its installer preserves existing local edits.

@@ -79,7 +79,7 @@ LOBO's state updates and sorting mechanics are configured via [policies](rust/cr
 
 ## Further reading
 
-The standalone terminal app lives in [cli/](cli/README.md). Run `lobo candles`,
+The independent terminal app lives in [rust/crates/lobo_cli/](rust/crates/lobo_cli/README.md), alongside the library crates and outside their Cargo workspace. Run `lobo candles`,
 `lobo book`, `lobo flow`, `lobo simulate`, or `lobo orders` in separate panes, or
 attach each view to `lobo session --socket /tmp/lobo.sock` for one shared feed,
 replay clock and simulation. `lobo dashboard` combines the views in one pane.
@@ -92,3 +92,10 @@ GPU chart rendering, an offline demo, and binary/Homebrew release packaging.
 | [Order book viewer](web/README.md)                     | Run the terminal locally; explore depth, OHLC bars, and simulations. |
 | [Python notebooks](python/notebooks/README.md)         | Replay, custom adapters, and data exports.                           |
 | [Build & packaging](docs/packaging.md)                 | Build and test Python wheels, including the bundled terminal.        |
+
+Bootstrap native terminal views with `lobo --preset simulator`, `lobo --preset
+tick-bars --bar-size 250`, or `lobo --preset bitfinex`. Agents can discover all
+commands and APIs through `lobo completions api`, read bundled guides with
+`lobo docs`, and install the offline agent skill with `lobo skill install`.
+The [lobo-terminal skill](skills/lobo-terminal/SKILL.md) also supports the Vercel
+Skills CLI: `npx skills add . --skill lobo-terminal` from this checkout.

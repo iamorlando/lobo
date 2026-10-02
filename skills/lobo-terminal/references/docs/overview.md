@@ -1,0 +1,101 @@
+# LOBO
+
+[![GitHub](https://img.shields.io/badge/GitHub-source-181717?style=flat-square&logo=github)](https://github.com/iamorlando/lobo)
+[![Python 3.11–3.14](https://img.shields.io/badge/Python-3.11%E2%80%933.14-3776AB?style=flat-square&logo=python&logoColor=white)](docs/packaging.md)
+[![Rust](https://img.shields.io/badge/Rust-2024-DEA584?style=flat-square&logo=rust&logoColor=white)](rust/crates/lobo/Cargo.toml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-A3E635?style=flat-square)](LICENSE-MIT.md)
+
+
+```sh
+pip install pylobo
+```
+
+- [LOBO](#lobo)
+  - [Get started](#get-started)
+  - [Build your own adapters](#build-your-own-adapters)
+  - [Use LOBO in Rust](#use-lobo-in-rust)
+  - [LOBO Is Highly Configurable](#lobo-is-highly-configurable)
+  - [Further reading](#further-reading)
+
+
+
+LOBO is a high-performance order book library built for fast replay. Written in Rust,
+it exposes Python APIs to create and serve books through a [REST order API](server.md#order-api)
+and an interactive [WebGPU terminal](web.md).
+
+There are many fast ordebooks out there, the key reason you might consider using LOBO is when you need to adapt a new market data source. LOBO offers an expressive Python API to fully specify and map almost any market data source from its binary or JSON representation. The real beauty of LOBO is that it then JIT compiles your adapter into a zero-allocation parser streaming at native Rust/C/C++ speeds.
+
+[![LOBO demo: AAPL liquidity heatmap, live depth, and replay controls](https://github.com/iamorlando/lobo/blob/main/docs/assets/lobo-demo.png)](https://lobo-demo.vercel.app)
+
+_Explore the [live demo](https://lobo-demo.vercel.app)._
+Or run locally with
+The above demo is available to run locally with
+```sh
+uvx pylobo demo
+```
+
+## Get started
+You can install LOBO into your python environment with 
+```sh
+pip install pylobo
+```
+
+To [build from Rust](packaging.md#build-locally), install it from the repository root:
+
+```sh
+pip install dist/pylobo-*.whl
+```
+
+To create and serve your first book, follow the [server guide](server.md)
+or try the [standalone order API example](python-examples-order_api.md).
+
+## Build your own adapters
+
+Browse the [Python example adapters](python-examples.md) and [adapter reference](custom-adapters.md). The examples cover Nasdaq ITCH, Kraken, Bitfinex, Polymarket, and LOBO's order feed.
+You can also use the [agent skill](https://github.com/iamorlando/lobo/blob/main/agents/README.md) to have an agent build one for you:
+
+```sh
+npx skills add iamorlando/lobo --skill lobo-adapter --copy
+```
+Then you can try prompt like this:
+```text
+build me the cme adapter for lobo, using the lobo adapter skill. then use a sample file
+    https://cmegroupclientsite.atlassian.net/wiki/spaces/EPICSANDBOX/pages/457223111/MBO+FIX#MBOFIX-SampleFiles to show one book in the
+  app
+  ```
+
+## Use LOBO in Rust
+
+```sh
+cargo add lobo-rs
+```
+
+
+## LOBO Is Highly Configurable
+Lobo relies heavily on static dispatch, deferring nearly all configuration level control flow to compile-time resolution of generic types. To achieve this LOBO's order state is held in a single [generational slotted arena](https://github.com/iamorlando/lobo/blob/main/rust/crates/lobo_storage/src/arena/arenav1.rs#L71), while all data structures beyond it operate only on [arena keys](https://github.com/iamorlando/lobo/blob/main/rust/crates/lobo_storage/src/arena/arenav1.rs#L37). This enables full configurability of the [sorting](https://github.com/iamorlando/lobo/blob/main/rust/crates/lobo_storage/src/price_sorting.rs#L244) and [storage algorithms](https://github.com/iamorlando/lobo/blob/main/rust/crates/lobo_storage/src/price_level/mod.rs), allowing LOBO to implement the optimal ones for the given use case.
+LOBO's state updates and sorting mechanics are configured via [policies](https://github.com/iamorlando/lobo/blob/main/rust/crates/lobo_books/src/price_time_priority/mod.rs#L38) that resolve at compile time to specialized concrete types. The benefits of this also extend to Python. Python users simply select the configuration of the book in the [book's init](https://github.com/iamorlando/lobo/blob/main/rust/crates/lobo_books/src/price_time_priority/python/book.rs#L158), this gets mapped by Rust to the [fully concrete typed implementation](https://github.com/iamorlando/lobo/blob/main/rust/crates/lobo_books/src/price_time_priority/python/policies.rs#L7). A user [macro](https://github.com/iamorlando/lobo/blob/main/rust/crates/lobo_storage/src/policies/matrix.rs#L4) facilitates this, enabling all combinatorial possibilities to exist in Python.
+
+
+
+## Further reading
+
+The independent terminal app lives in [rust/crates/lobo_cli/](terminal.md), alongside the library crates and outside their Cargo workspace. Run `lobo candles`,
+`lobo book`, `lobo flow`, `lobo simulate`, or `lobo orders` in separate panes, or
+attach each view to `lobo session --socket /tmp/lobo.sock` for one shared feed,
+replay clock and simulation. `lobo dashboard` combines the views in one pane.
+It reuses the native engine and includes
+GPU chart rendering, an offline demo, and binary/Homebrew release packaging.
+
+| Guide                                                  | What you'll find                                                     |
+| ------------------------------------------------------ | -------------------------------------------------------------------- |
+| [Server & REST API](server.md) | Host books, submit orders, and stream updates.                       |
+| [Order book viewer](web.md)                     | Run the terminal locally; explore depth, OHLC bars, and simulations. |
+| [Python notebooks](python-notebooks.md)         | Replay, custom adapters, and data exports.                           |
+| [Build & packaging](packaging.md)                 | Build and test Python wheels, including the bundled terminal.        |
+
+Bootstrap native terminal views with `lobo --preset simulator`, `lobo --preset
+tick-bars --bar-size 250`, or `lobo --preset bitfinex`. Agents can discover all
+commands and APIs through `lobo completions api`, read bundled guides with
+`lobo docs`, and install the offline agent skill with `lobo skill install`.
+The [lobo-terminal skill](https://github.com/iamorlando/lobo/blob/main/skills/lobo-terminal/SKILL.md) also supports the Vercel
+Skills CLI: `npx skills add . --skill lobo-terminal` from this checkout.
