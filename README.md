@@ -79,6 +79,13 @@ LOBO's state updates and sorting mechanics are configured via [policies](rust/cr
 
 ## Further reading
 
+The standalone terminal app lives in [cli/](cli/README.md). Run `lobo candles`,
+`lobo book`, `lobo flow`, `lobo simulate`, or `lobo orders` in separate panes, or
+attach each view to `lobo session --socket /tmp/lobo.sock` for one shared feed,
+replay clock and simulation. `lobo dashboard` combines the views in one pane.
+It reuses the native engine and includes
+GPU chart rendering, an offline demo, and binary/Homebrew release packaging.
+
 | Guide                                                  | What you'll find                                                     |
 | ------------------------------------------------------ | -------------------------------------------------------------------- |
 | [Server & REST API](rust/crates/lobo_server/README.md) | Host books, submit orders, and stream updates.                       |
