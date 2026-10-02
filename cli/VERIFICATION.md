@@ -9,7 +9,7 @@
 - The macOS ARM64 release archive was built with the executable, completions and README. The executable ran with an empty environment and a system-only PATH. Its dynamic libraries are macOS system libraries/frameworks only.
 - Homebrew checksum-generation tests passed and the release workflow YAML parsed successfully.
 
-Linux ARM64 was subsequently built and tested locally in an isolated Ubuntu container (see below). Linux x86-64 was also cross-built and exercised in Ubuntu (see below). Intel Mac execution and published Homebrew installation remain release checks. Publishing the draft release and placing the generated formula in a tap remains a release step.
+Linux ARM64 was subsequently built and tested locally in an isolated Ubuntu container (see below). Linux x86-64 was also cross-built and exercised in Ubuntu (see below). The native Intel Mac and Homebrew checks subsequently passed in CI; see the published release verification below.
 
 ## Shared multipane verification
 
@@ -49,12 +49,14 @@ The Intel Mac target cross-compiled successfully with deployment target 12.0
 and only macOS system framework/library dependencies. The local Intel Mac
 archive contains a universal executable with the actual compiled x86-64 and
 ARM64 slices; its ARM64 slice was exercised by packaging on this machine.
-The Intel slice was not executed: Rosetta is absent. CI on an Intel Mac is still
-the native execution gate. No Rosetta or global toolchain installs were made.
+The local Intel slice was not executed: Rosetta is absent. Native Intel Mac CI
+subsequently passed and produced the thin Intel executable used in the release.
+No Rosetta or global toolchain installs were made.
 
 All four actual platform archives are now present locally. The Homebrew formula
 and SHA256SUMS were derived from their real bytes, without placeholder hashes.
-The release and Homebrew tap have not been published.
+The published release uses the subsequent native CI artifacts, rather than the
+local cross-build artifacts.
 
 ## Actual Homebrew installation
 
@@ -74,5 +76,25 @@ the formula's version, L3, bid and ask assertions when run directly.
 Homebrew's generic test-environment check for outdated Command Line Tools on
 this pre-release macOS 27 host. No developer tools were upgraded and no check
 was bypassed. The workflow now runs actual bottle installation and `brew test`
-on both supported ARM and Intel macOS 15 runners. Those remote jobs have not
-been executed in this session. The release and tap remain unpublished.
+on both supported ARM and Intel macOS 15 runners. Both remote installation and
+formula tests subsequently passed.
+
+## Published release verification
+
+[CI run 36979055856](https://github.com/iamorlando/lobo/actions/runs/36979055856)
+passed all seven jobs for commit `090cc6be07f4ecdd91b7cf8f4b4f0e2ee6c95f58`:
+native ARM64 and Intel Mac builds, native ARM64 and x86-64 Linux builds,
+checksum-verified bottle packaging, and actual Homebrew installation and formula
+tests on both Mac architectures. The native checks included replay, shared
+sessions, stale-order rejection, real terminal streams and terminal restoration.
+
+All eight native archives and bottles were downloaded and verified against the
+CI SHA256SUMS before publication. The exact Apple Silicon release executable was
+also exercised on physical Metal: four simultaneous 90 × 25 terminal streams,
+180 frames each, ran at 51.2–58.3 fps including startup and ANSI output, with exact
+terminal restoration.
+
+[Terminal release 0.1.0](https://github.com/iamorlando/lobo/releases/tag/cli-v0.1.0)
+and the [Homebrew tap](https://github.com/iamorlando/homebrew-lobo) are published.
+Release artifacts are the unmodified, tested CI artifacts. This later
+documentation update does not change application source or binary bytes.

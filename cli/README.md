@@ -28,16 +28,12 @@ wasm-pack, npm packages, a browser or a separate Lobo server. Five palettes and
 an offline native L3 demo are compiled into the executable. Public feeds need
 network access; custom upstream themes are downloaded only when requested.
 
-**This checkout prepares distribution; it does not publish a Homebrew formula.**
-The release workflow builds macOS Apple Silicon/Intel and Linux ARM64/x86-64
-archives (macOS 12+; Linux glibc 2.35+), shell completions, actual SHA256
-checksums, and a dependency-free
-Homebrew formula with relocatable bottles. Homebrew pours the executable instead
-of taking its source-build path, so no compiler or Rust install is needed.
-On `cli-vX.Y.Z` tags it creates a **draft** GitHub release.
-
-After publishing the release and putting its generated `lobo.rb` at
-`Formula/lobo.rb` in `iamorlando/homebrew-lobo`:
+[Lobo terminal 0.1.0](https://github.com/iamorlando/lobo/releases/tag/cli-v0.1.0)
+is available for macOS Apple Silicon/Intel and Linux ARM64/x86-64
+(macOS 12+; Linux glibc 2.35+), with shell completions and SHA256 checksums.
+The [Homebrew tap](https://github.com/iamorlando/homebrew-lobo) provides
+dependency-free, relocatable bottles. Homebrew pours the executable directly,
+so no compiler or Rust install is needed:
 
 ```sh
 brew install iamorlando/lobo/lobo
@@ -51,7 +47,7 @@ Homebrew core. Current Homebrew also requires trust for third-party formulae;
 when requested, use `brew trust --formula iamorlando/lobo/lobo`. A custom tap
 cannot make itself globally discoverable. See
 [Homebrew's tap installation instructions](https://docs.brew.sh/How-to-Create-and-Maintain-a-Tap).
-No additional manual install is needed once the binary formula is published.
+No additional runtime install is needed.
 
 For development, from the repository root:
 
